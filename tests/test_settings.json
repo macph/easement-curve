@@ -1,0 +1,25 @@
+{
+    "tracks": {
+        "yard": {
+            "radius": 250,
+            "speed": 40,
+            "dim": "mph"
+        }, 
+        "mainline": {
+            "radius": 1000,
+            "speed": 120, 
+            "dim": "mph"
+        },
+        "passenger": {
+            "radius": 500,
+            "speed": 80,
+            "dim": "mph"
+        },
+        "freight": {
+            "radius": 400,
+            "speed": 60,
+            "dim": "mph"
+        }
+    }, 
+    "language": "en"
+}

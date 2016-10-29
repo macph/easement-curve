@@ -1,0 +1,16 @@
+name: ec
+channels: !!python/tuple
+- defaults
+dependencies:
+- pip=8.1.2=py35_0
+- python=3.5.2=0
+- setuptools=27.2.0=py35_1
+- vs2015_runtime=14.0.25123=0
+- wheel=0.29.0=py35_0
+- pip:
+  - future==0.15.2
+  - pefile==2016.3.28
+  - pyinstaller==3.2
+  - pypiwin32==219
+prefix: C:\Anaconda3\envs\ec
+
