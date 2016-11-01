@@ -20,8 +20,8 @@ pip install pyinstaller
 ```
 `pip` is the Python package manager. It will install `PyInstaller` and other required modules.
 
-Navigate to the folder where you downloaded the source and type in
+Unzip the source code into a folder and navigate to that folder in command prompt, and type in
 ```
-pyinstaller -Fw easement-curve-0.1
+pyinstaller -Fw run_calc.py
 ```
-where `easement-curve-0.1` is the name of the .zip file you have downloaded.
+The executable will be created in the `\dist` folder.
