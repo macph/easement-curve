@@ -597,10 +597,12 @@ class TrackCurve(TrackSection):
             diff_angle = self.find_diff_angle(other)
         else:
             diff_angle = self.find_diff_angle(other)
-            if not self.check_start_alignment(other):
-                # Flip CW direction and recalculate diff_angle
+            if not self.check_start_alignment(other) and not \
+                    self.start.bearing.nearly_equal(other.bearing.flip()):
+                # Other track behind start point, so flip CW/ACW to create a
+                # balloon loop instead and recalculate diff_angle
                 self.clockwise = not self.clockwise
-                diff_angle = self.find_diff_angle(other)
+                diff_angle = self.find_diff_angle(other, True)
 
         line_other = LinearEquation(bearing=other.bearing,
                                     point=(other.pos_x, other.pos_z))
@@ -626,6 +628,7 @@ class TrackCurve(TrackSection):
             if static_curve_angle < 0:
                 # RoC too small; set a floor and repeat loop
                 n_floor = curvature
+
             else:
                 if self.start.curvature != curvature:
                     # Usual EC -> Static -> EC setup
@@ -633,6 +636,7 @@ class TrackCurve(TrackSection):
                     static = self.ts_static_curve(
                         ec1, static_curve_angle)
                     ec2 = self.ts_easement_curve(static, 0)
+
                 else:
                     # easement_length & pre_angle is cancelled out
                     ec1 = None
@@ -683,6 +687,7 @@ class TrackCurve(TrackSection):
                 else:
                     # Ceiling value is set but not under so reduce RoC
                     curvature *= 2
+
             else:
                 if n_floor is not None:
                     # Floor value is set but not over so increase RoC

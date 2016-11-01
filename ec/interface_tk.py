@@ -195,10 +195,10 @@ class App(object):
 
         try:
             result = self.current_entry.get_result()
-        except AttributeError:
+        except AttributeError as err:
             self.error = "Error: All fields must be filled in."
             self.refresh_message('red')
-            return
+            raise AttributeError from err
         except (InterfaceException, curve.CoordException, curve.TrackException,
                 curve.CurveException) as err:
             err_string = {InterfaceException: "Input error: ",
@@ -366,7 +366,6 @@ class EntryMethod1(EntryM):
             raise InterfaceException('Radius of curvature must be a number.')
 
         track = curve.TrackCurve(curve=start_track, **self.args())
-        print(self.controller.cw.get())
         if self.controller.cw.get() == 'CW':
             track.clockwise = True
         elif self.controller.cw.get() == 'ACW':

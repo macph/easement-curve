@@ -1,5 +1,4 @@
-import sys
-import ec.interface_cli
+import ec.interface_tk
 
 if __name__ == "__main__":
-    script_interface = ec.interface_cli.Interface(*sys.argv)
+    script_interface = ec.interface_tk.main()
