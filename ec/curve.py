@@ -87,6 +87,10 @@ class TrackCoord(object):
             if r <= bearing < r + 90:
                 return quadrants[r]
         else:
+            # Just in case bearing was 360 and escaped the above dict
+            if round(bearing) == 360:
+                return quadrants[0]
+            # Otherwise, raises error
             raise ValueError(
                 "Bearing: {} is not within [0, 360) / [0, 2pi)."
                 "".format(repr(bearing)))
@@ -384,7 +388,7 @@ class TrackSection(object):
                           curvature=end_curv, org_length=curve_length,
                           org_curvature=self.start.curvature)
 
-    def static_curve(self, end_value):
+    def static_curve(self, angle_diff):
         """ Creates a static (no change in curvature) track section based
             on the radius of curvature set with TrackCoord. Outputs
             another TrackCoord object. Length of the static curve depends
@@ -394,7 +398,7 @@ class TrackSection(object):
             raise TrackException("Can't specify an angle if the track is "
                                  "already straight.")
         else:
-            t = end_value
+            t = angle_diff
             length = t / abs(self.start.curvature)
 
         self.clockwise = False if self.start.curvature > 0 else True
@@ -402,8 +406,7 @@ class TrackSection(object):
 
         x, z = radius * (1 - math.cos(t)), radius * math.sin(t)
         r = Bearing(t, rad=True)
-        if not self.clockwise:
-            x, r = -x, -r
+        x, r = (-x, -r) if not self.clockwise else (x, r)
 
         xs, zs, rs = self.start.pos_x, self.start.pos_z, self.start.bearing
         tx, tz = transform(a=(x, z), r=rs, c=(xs, zs))
@@ -432,60 +435,83 @@ class TrackCurve(TrackSection):
         ts = TrackSection(curve, self.minimum_radius, self.speed_tolerance)
         return ts.easement_curve(end_curv)
 
-    def ts_static_curve(self, curve, end_value):
+    def ts_static_curve(self, curve, angle_diff):
         """ Creates a TrackSection instance and returns its static_curve
             method with 'angle' type, for operational and reading ease.
         """
         ts = TrackSection(curve, self.minimum_radius, self.speed_tolerance)
-        return ts.static_curve(end_value)
+        return ts.static_curve(angle_diff)
 
-    def find_diff_angle(self, track, shortest_curve):
+    def find_diff_angle(self, other, apply_cw=False):
         """ Finds the difference in bearing between the two tracks with
             bearing A and B. If A-B > B-A then B is to the right with a
             clockwise curve, and vice versa.
-            If shortest is True, will pick the alignment of track B with
-            the smallest difference in bearing and therefore curve length.
-            Returns diff_angle as Bearing and clockwise as bool.
+            If apply_cw is True, will pick side depending on self.clockwise
+            already set, even if it has the bigger difference in bearing.
         """
         # Checks how the 2nd track is aligned wrt the 1st
-        if (self.start.bearing - track.bearing).rad > \
-                (track.bearing - self.start.bearing).rad:
-            # 2nd track is aligned to the right
-            if not shortest_curve:
-                return track.bearing - self.start.bearing, True
-            else:
-                angle_acw = self.start.bearing - track.bearing.flip()
-                angle_cw = track.bearing - self.start.bearing
-        else:
-            # 2nd track is aligned to the left
-            if not shortest_curve:
-                return self.start.bearing - track.bearing, False
-            else:
-                angle_acw = self.start.bearing - track.bearing
-                angle_cw = track.bearing.flip() - self.start.bearing
+        if self.start.bearing.nearly_equal(other.bearing):
+            raise CurveException('Tracks 1 and 2 must not be parallel.')
 
-        # Picks CW or ACW with least difference in angle
-        clockwise = angle_cw.rad < angle_acw.rad
-        return angle_cw if clockwise else angle_acw, clockwise
+        elif (self.start.bearing - other.bearing).rad == math.pi:
+            # The two tracks are in opposite directions
+            # Check whether other track is to left or right of the starting track
+            start_point = (self.start.pos_x, self.start.pos_z)
+            start_line = LinearEquation(self.start.bearing, start_point)
+            right_side = (start_point[0] + math.sin(self.start.bearing.rad),
+                          start_point[1] + math.cos(self.start.bearing.rad))
+
+            if start_line.dist((other.pos_x, other.pos_z)) == 0:
+                raise CurveException('The other track is on the same alignment'
+                                     ' as the starting track.')
+            diff_b = Bearing(math.pi, rad=True)
+            cw = start_line.same_side((other.pos_x, other.pos_z), right_side)
+            if apply_cw and cw is not self.clockwise:
+                raise CurveException('The starting track is curved away from '
+                                     'the other track - cannot make a suitable'
+                                     ' alignment.')
+
+        elif (self.start.bearing - other.bearing).rad > \
+                (other.bearing - self.start.bearing).rad:
+            # 2nd track is aligned to the right
+            diff_b, cw = other.bearing - self.start.bearing, True
+
+        else:
+            # Otherwise 2nd track is aligned to the left
+            diff_b, cw = self.start.bearing - other.bearing, False
+
+        if not apply_cw or self.clockwise is None:
+            self.clockwise = cw
+            return diff_b
+        else:
+            return diff_b if self.clockwise is cw else -diff_b
 
     def check_start_alignment(self, other):
         """ Checks whether the start point is aligned towards the other track -
             if it isn't, it will not be possible to extend a curve to join it.
             Raises False if it doesn't, True otherwise.
+            Since LinearEquation.same_side(a, b) returns True if one of the
+            points is on the line, it follows that this method returns False
+            if the other alignment lies on the line.
         """
-        # Set track as line object
 
-        # Check how the two points are aligned to each other.
-        first = LinearEquation(other.bearing, (other.pos_x, other.pos_z))
-        start_point = (self.start.pos_x, self.start.pos_z)
-        second = LinearEquation(self.start.bearing, start_point)
-        intersect = first.intersect(second)
-        point_beyond = (intersect[0] + math.sin(self.start.bearing.rad),
-                        intersect[1] + math.cos(self.start.bearing.rad))
+        if self.start.bearing.nearly_equal(other.bearing):
+            raise CurveException('Tracks 1 and 2 must not be parallel.')
+        elif (self.start.bearing - other.bearing).rad == math.pi:
+            # Difference 180 deg
+            return False
+        else:
+            # Check how the two points are aligned to each other.
+            first = LinearEquation(other.bearing, (other.pos_x, other.pos_z))
+            start_point = (self.start.pos_x, self.start.pos_z)
+            second = LinearEquation(self.start.bearing, start_point)
+            intersect = first.intersect(second)
+            point_beyond = (intersect[0] + math.sin(self.start.bearing.rad),
+                            intersect[1] + math.cos(self.start.bearing.rad))
 
-        return not first.same_side(point_beyond, start_point)
+            return not first.same_side(point_beyond, start_point)
 
-    def curve_fit_radius(self, radius, other, shortest=False):
+    def curve_fit_radius(self, radius, other):
         """ Finds a curve with easement sections and static curve of a certain
             radius of curvature that fits the two straight tracks.
         """
@@ -494,24 +520,31 @@ class TrackCurve(TrackSection):
                 'Radius {0} must be greater than the minimum radius of '
                 'curvature.'.format(radius))
 
-        if other.curvature != 0 or self.start.curvature != 0:
-            raise CurveException('Both tracks must be straight.')
-
         try:
-            if self.start.bearing.nearly_equal(other.bearing, flip=True):
+            if other.curvature != 0 or self.start.curvature != 0:
+                raise CurveException('Both tracks must be straight.')
+            if self.start.bearing.nearly_equal(other.bearing):
                 raise CurveException('Tracks 1 and 2 must not be parallel.')
+            elif self.start.bearing.nearly_equal(other.bearing.flip()):
+                # Can't fit curve of specific radius to two parallel tracks -
+                # 1) only one valid radius value, 2) can be placed anywhere
+                # along tracks.
+                raise CurveException('This method does not work with tracks '
+                                     'parallel in opposite directions.')
         except AttributeError as err:
             raise AttributeError('Tracks 1 and 2 need to be TrackCoord '
                                  'objects.') from err
 
         # Sets signed curvature and angle difference between 2 straight tracks
-        diff_angle, self.clockwise = self.find_diff_angle(other, shortest)
+        diff_angle = self.find_diff_angle(other, True)
         curvature = -1 / radius if self.clockwise else 1 / radius
 
         # Finds length of easement curve and adjusts angle diff of static curve
         easement_length = self.get_length(curvature)
         static_curve_angle = diff_angle.rad - 2 * self.get_angle(easement_length)
         if static_curve_angle < 0:
+            # Angle diff from two easement curves bigger than angle between
+            # the two straight tracks; can't fit them in
             raise CurveException(
                 "The easement curves are too long to fit within the curve;\n"
                 "consider increasing the radius of curvature.")
@@ -522,7 +555,7 @@ class TrackCurve(TrackSection):
         ec2 = self.ts_easement_curve(static, 0)
 
         # Assembling into a dict and copying to ensure no changed values -
-        # they depended on each other
+        # they depends on each other
         curve_data = {'start': copy(self.start), 'ec1': copy(ec1),
                       'static': copy(static), 'ec2': copy(ec2)}
 
@@ -532,7 +565,6 @@ class TrackCurve(TrackSection):
                                     (other.pos_x, other.pos_z))
         line_end_point = LinearEquation(self.start.bearing,
                                         (ec2.pos_x, ec2.pos_z))
-
         end_point = line_track.intersect(line_end_point)
 
         # Applies translation to each of the sections
@@ -550,31 +582,25 @@ class TrackCurve(TrackSection):
             places: minimum distance between easement curve and 2nd track
             iterations: maximum number of iterations before giving up
         """
-        if other.curvature != 0:
-            raise CurveException('The end track must be straight.')
-
         try:
-            if self.start.bearing.nearly_equal(other.bearing, flip=True):
+            if other.curvature != 0:
+                raise CurveException('The end track must be straight.')
+            if self.start.bearing.nearly_equal(other.bearing):
                 raise CurveException('Tracks 1 and 2 must not be parallel.')
-
         except AttributeError as err:
             raise AttributeError('Tracks 1 and 2 need to be TrackCoord '
                                  'objects.') from err
 
-        # Sets signed curvature and angle difference between 2 straight tracks
-        diff_angle, self.clockwise = self.find_diff_angle(other, False)
-
-        if self.start.curvature != 0 and \
-                self.clockwise != bool(self.start.curvature < 0):
-            # CW/ACW set but it's not the same as starting curvature
-            raise CurveException(
-                "The starting point has a curvature in the opposite direction "
-                "to the alignment of the second track.")
-
-        # Checks alignment of the start point.
-        if not self.check_start_alignment(other):
-            raise CurveException("The start point is not aligned towards the "
-                                 "track.")
+        # Setting clockwise direction if starting curvature is not straight
+        if self.start.curvature != 0:
+            self.clockwise = self.start.curvature < 0
+            diff_angle = self.find_diff_angle(other)
+        else:
+            diff_angle = self.find_diff_angle(other)
+            if not self.check_start_alignment(other):
+                # Flip CW direction and recalculate diff_angle
+                self.clockwise = not self.clockwise
+                diff_angle = self.find_diff_angle(other)
 
         line_other = LinearEquation(bearing=other.bearing,
                                     point=(other.pos_x, other.pos_z))
@@ -628,11 +654,6 @@ class TrackCurve(TrackSection):
                     # Checking if absolute curvature is bigger than floor
                     if n_floor is None:
                         n_floor = curvature
-                    elif n_floor is not None and abs(curvature) > abs(n_floor):
-                        raise ValueError(
-                            "Curvature {:.3f} is bigger than the previous big"
-                            "value {:3f} - bisection method can't work."
-                            "".format(curvature, n_floor))
                     else:
                         n_floor = curvature
 
@@ -648,12 +669,6 @@ class TrackCurve(TrackSection):
                     # Checking if absolute curvature is smaller than ceiling
                     if n_ceiling is None:
                         n_ceiling = curvature
-                    elif n_ceiling is not None and \
-                            abs(curvature) < abs(n_ceiling):
-                        raise ValueError(
-                            "Curvature {:.3f} is smaller than the previous "
-                            "small value {:.3f} - bisection method can't work."
-                            "".format(curvature, n_ceiling))
                     else:
                         n_ceiling = curvature
 

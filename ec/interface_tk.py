@@ -20,6 +20,14 @@ instructions = """
 """
 
 
+def get_text_length(length, font='TkDefaultFont'):
+    """ Retrieves the length of a string defined by number of characters
+        in terms of pixels.
+    """
+    base_length = nametofont(font).measure('e'*80)
+    return round(base_length * length / 80)
+
+
 class InterfaceException(Exception):
     pass
 
@@ -37,6 +45,7 @@ class App(object):
     }
 
     def __init__(self, parent):
+        # Properties
         self._kph = None
 
         self.container = Frame(parent, padding="5 5 5 5")
@@ -54,9 +63,7 @@ class App(object):
         def multi_string_var(i=4): return [StringVar() for j in range(i)]
         self.line0, self.line1, self.line2 = \
             multi_string_var(), multi_string_var(), multi_string_var()
-        self.line0[2].set('0')
-        self.line0[3].set('NE')
-        self.radius = [StringVar()]
+        self.radius, self.cw = StringVar(), StringVar()
         self.entries = {'1': EntryMethod1, '2': EntryMethod2,
                         '3': EntryMethod3}
         self.current_entry = self.entries[self.m](self.container, self)
@@ -127,14 +134,10 @@ class App(object):
             self.container, text="Method {} description".format(self.m))
         self.method_heading.grid(row=1, sticky=(W, E))
 
-        text_length = nametofont('TkDefaultFont').measure(
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '
-            'Vivamus ut ligula sit amet sed.')
-
         self.method_description = Label(self.method_heading,
                                         text=self.description[self.m])
-        self.method_description.config(width=80, wraplength=int(text_length),
-                                       padding="4 0 0 4")
+        self.method_description.config(
+            width=82, wraplength=int(get_text_length(82)), padding="4 0 0 4")
         self.method_description.grid(sticky=(W, E))
 
     def refresh_method(self, event):
@@ -145,7 +148,7 @@ class App(object):
         self.current_entry = self.entries[self.m](self.container, self)
 
     def actions(self):
-        ac = Frame(self.container)
+        ac = Frame(self.container, padding="4 0 0 0")
         ac.grid(column=1, row=3, sticky=S)
         ac.rowconfigure(0, pad=4)
 
@@ -178,7 +181,9 @@ class App(object):
                                                         sticky=(W, E))
 
     def clear(self):
-        for line in [self.line0, self.line1, self.line2, self.radius]:
+        self.radius.set('')
+        self.cw.set('N/A')
+        for line in [self.line0, self.line1, self.line2]:
             for i in line:
                 i.set('')
 
@@ -344,15 +349,29 @@ class EntryMethod1(EntryM):
         self.end_label("X, Z, R, Q", 1)
 
         self.start_label("Radius of curvature", 2)
-        self.entry_boxes(self.controller.radius, 1, 2)
+        Entry(self, textvariable=self.controller.radius, width=8
+              ).grid(row=2, column=1, sticky=W)
         Label(self, text="m").grid(row=2, column=2, sticky=W)
+        Label(self, text="direction", justify=RIGHT).grid(row=2, column=3, sticky=E)
+        options = ['N/A', 'CW', 'ACW']
+        OptionMenu(self, self.controller.cw, options[0], *options
+                   ).grid(row=2, column=4, sticky=W, columnspan=2)
 
     def get_result(self):
         start_track = self.get_coord(self.controller.line1)
         end_track = self.get_coord(self.controller.line2)
-        curve_radius = float(self.controller.radius[0].get())
+        try:
+            curve_radius = float(self.controller.radius.get())
+        except ValueError:
+            raise InterfaceException('Radius of curvature must be a number.')
 
         track = curve.TrackCurve(curve=start_track, **self.args())
+        print(self.controller.cw.get())
+        if self.controller.cw.get() == 'CW':
+            track.clockwise = True
+        elif self.controller.cw.get() == 'ACW':
+            track.clockwise = False
+
         return track.curve_fit_radius(radius=curve_radius, other=end_track)
 
 
@@ -387,6 +406,8 @@ class EntryMethod3(EntryM):
         self.start_label("Additional point on curve", 1)
         self.entry_boxes(self.controller.line0, 2, 1)
         self.end_label("X, Z", 1)
+        self.controller.line0[2].set('0')
+        self.controller.line0[3].set('NE')
 
         self.start_label("Straight track to join", 2)
         self.entry_boxes(self.controller.line2, 4, 2)
@@ -413,19 +434,19 @@ class Result(Frame):
     def create_table(self):
         tv = Treeview(self, height=5)
         columns = ('length', 'roc', 'pos_x', 'pos_z', 'rotation', 'quad')
-        columns_d = {'length': ('Length', 'e', '60'),
-                     'roc': ('Radius of curvature', 'w', 150),
-                     'pos_x': ('Position x', 'e', 75),
-                     'pos_z': ('Position z', 'e', 75),
-                     'rotation': ('Rotation', 'e', 75),
-                     'quad': ('Quad', 'w', 50)}
+        columns_d = {'length': ('Length', 'e', 10),
+                     'roc': ('Radius of curvature', 'w', 24),
+                     'pos_x': ('Position x', 'e', 12),
+                     'pos_z': ('Position z', 'e', 12),
+                     'rotation': ('Rotation', 'e', 12),
+                     'quad': ('Quad', 'w', 8)}
         tv['columns'] = columns
         tv.heading("#0", text='Curve section', anchor='w')
-        tv.column("#0", anchor="w", width=150)
+        tv.column("#0", anchor="w", width=get_text_length(20))
         for col in columns:
             c = columns_d[col]
             tv.heading(col, text=c[0], anchor='w')
-            tv.column(col, anchor=c[1], width=c[2])
+            tv.column(col, anchor=c[1], width=get_text_length(c[2]))
 
         tv.grid(sticky=(N, S, W, E))
         self.treeview = tv

@@ -15,13 +15,15 @@ from tests.tests_common import CustomAssertions
 class BaseTCTests(unittest.TestCase, CustomAssertions):
 
     def setUp(self):
+        super(BaseTCTests, self).setUp()
+
         minimum_high, speed_high = 500, 120
         minimum_low, speed_low = 200, 80
 
         self.start_straight = ec.curve.TrackCoord(
             pos_x=217.027, pos_z=34.523, rotation=48.882, quad=ec.curve.Q.NE, curvature=0)
         self.start_curved = ec.curve.TrackCoord(
-            pos_x=354.667, pos_z=137.112, rotation=59.824, quad=ec.curve.Q.NE, curvature=0)
+            pos_x=354.667, pos_z=137.112, rotation=59.824, quad=ec.curve.Q.NE, curvature=-1/600)
         self.start_curved_add = ec.curve.TrackCoord(
             pos_x=287.741, pos_z=92.965, rotation=53.356, quad=ec.curve.Q.NE, curvature=0)
 
@@ -33,15 +35,202 @@ class BaseTCTests(unittest.TestCase, CustomAssertions):
         # For curves with diff > 270
         self.end_far_left = ec.curve.TrackCoord(
             pos_x=-123.550, pos_z=199.813, rotation=5.913, quad=ec.curve.Q.SW, curvature=0)
-        # To test low RoC with low angle diff - should raise exception
+        self.end_far_right = ec.curve.TrackCoord(
+            pos_x=296.508, pos_z=681.428-1024, rotation=72.687, quad=ec.curve.Q.NW, curvature=0)
+        # For curves with diff = 180
+        self.end_reverse_left = ec.curve.TrackCoord(
+            pos_x=6.616, pos_z=872.368, rotation=48.882, quad=ec.curve.Q.SW, curvature=0)
+        self.end_reverse_right = ec.curve.TrackCoord(
+            pos_x=569.182, pos_z=553.873-1024, rotation=48.882, quad=ec.curve.Q.SW, curvature=0)
+        # To test how RoC with low angle diff - should raise exception
         self.end_low_angle = ec.curve.TrackCoord(
-            pos_x=554.679, pos_z=226.288, rotation=65.670, quad=ec.curve.Q.NE, curvature=0)
+            pos_x=400.495, pos_z=178.755, rotation=53.612, quad=ec.curve.Q.NE, curvature=0)
 
         self.straight_high = ec.curve.TrackCurve(self.start_straight, minimum_high, speed_high)
         self.straight_low = ec.curve.TrackCurve(self.start_straight, minimum_low, speed_low)
         self.left = ec.curve.TrackCurve(self.start_curved, minimum_high, speed_high)
 
     def tearDown(self):
+        super(BaseTCTests, self).tearDown()
+
         del self.start_straight, self.start_curved, self.start_curved_add
-        del self.end_left, self.end_right, self.end_far_left, self.end_low_angle
+        del self.end_left, self.end_right, self.end_far_left, self.end_far_right
+        del self.end_reverse_left, self.end_reverse_right, self.end_low_angle
         del self.straight_high, self.straight_low, self.left
+
+    def test_create_easement(self):
+        ts = ec.curve.TrackSection(self.start_straight, 500, 120)
+        self.assertEqual(ts.easement_curve(0.0001).__dict__,
+                         self.straight_high.easement_curve(0.0001).__dict__)
+
+    def test_create_static(self):
+        ts = ec.curve.TrackSection(self.start_straight, 500, 120)
+        ts.start.curvature = 0.0001
+        self.straight_high.start.curvature = 0.0001
+        self.assertEqual(ts.static_curve(math.pi/4).__dict__,
+                         self.straight_high.static_curve(math.pi/4).__dict__)
+
+
+class DiffAngleTests(BaseTCTests):
+
+    def test_exception_parallel(self):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'must not be parallel'):
+            self.straight_high.find_diff_angle(self.start_straight)
+
+    def test_diff_left(self):
+        diff_b = self.straight_high.find_diff_angle(self.end_left)
+        self.assertDataAlmostEqual((diff_b.deg, self.straight_high.clockwise), (36.12, False))
+
+    def test_diff_right(self):
+        diff_b = self.straight_high.find_diff_angle(self.end_right)
+        self.assertDataAlmostEqual((diff_b.deg, self.straight_high.clockwise), (26.567, True))
+
+    def test_diff_reverse_left(self):
+        diff_b = self.straight_high.find_diff_angle(self.end_reverse_left)
+        self.assertDataAlmostEqual((diff_b.deg, self.straight_high.clockwise), (180, False))
+
+    def test_diff_reverse_right(self):
+        diff_b = self.straight_high.find_diff_angle(self.end_reverse_right)
+        self.assertDataAlmostEqual((diff_b.deg, self.straight_high.clockwise), (180, True))
+
+    def test_diff_far_left(self):
+        self.straight_high.clockwise = False
+        diff_b = self.straight_high.find_diff_angle(self.end_far_left, True)
+        self.assertDataAlmostEqual((diff_b.deg, self.straight_high.clockwise), (222.969, False))
+
+    def test_diff_not_far_left(self):
+        diff_b = self.straight_high.find_diff_angle(self.end_far_left)
+        self.assertDataAlmostEqual((diff_b.deg, self.straight_high.clockwise), (137.031, True))
+
+    def test_diff_far_right(self):
+        self.straight_high.clockwise = True
+        diff_b = self.straight_high.find_diff_angle(self.end_far_right, True)
+        self.assertDataAlmostEqual((diff_b.deg, self.straight_high.clockwise), (238.431, True))
+
+    def test_diff_not_far_right(self):
+        diff_b = self.straight_high.find_diff_angle(self.end_far_right)
+        self.assertDataAlmostEqual((diff_b.deg, self.straight_high.clockwise), (121.569, False))
+
+
+class AlignmentTests(BaseTCTests):
+
+    def test_exception_parallel(self):
+        self.end_reverse_left.bearing = self.end_reverse_left.bearing.flip()
+        with self.assertRaisesRegex(ec.curve.CurveException, 'must not be parallel'):
+            self.straight_high.check_start_alignment(self.end_reverse_left)
+
+    def test_alignment_left(self):
+        self.assertTrue(self.straight_high.check_start_alignment(self.end_left))
+
+    def test_alignment_right(self):
+        self.assertTrue(self.straight_high.check_start_alignment(self.end_right))
+
+    def test_alignment_far_left(self):
+        self.assertFalse(self.straight_high.check_start_alignment(self.end_far_left))
+
+    def test_alignment_far_right(self):
+        self.assertFalse(self.straight_high.check_start_alignment(self.end_far_right))
+
+    def test_alignment_reverse_left(self):
+        self.assertFalse(self.straight_high.check_start_alignment(self.end_reverse_left))
+
+    def test_alignment_reverse_right(self):
+        self.assertFalse(self.straight_high.check_start_alignment(self.end_reverse_right))
+
+
+class CurveFitRadiusTests(BaseTCTests):
+
+    def test_exception_curve_radius_minimum_radius(self):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'Radius 350 must be greater'):
+            self.straight_high.curve_fit_radius(350, self.end_left)
+
+    def test_exception_curve_radius_wrong_object(self):
+        with self.assertRaisesRegex(AttributeError, 'need to be TrackCoord'):
+            self.straight_high.curve_fit_radius(600, None)
+
+    def test_exception_curve_radius_cannot_fit(self):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'The easement curves are too long'):
+            self.straight_high.curve_fit_radius(500, self.end_low_angle)
+
+    def test_exception_curve_radius_curved(self):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'Both tracks must be straight'):
+            self.left.curve_fit_radius(500, self.end_left)
+
+    def test_exception_curve_radius_reverse(self):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'This method does not work'):
+            self.straight_high.curve_fit_radius(500, self.end_reverse_left)
+
+    def test_curve_assert_radius(self):
+        curve = self.straight_high.curve_fit_radius(600, self.end_left)
+        self.assertAlmostEqual(curve['static'].radius, 600)
+    
+    def test_curve_radius_left(self):
+        curve = self.straight_high.curve_fit_radius(600, self.end_left)
+        self.assertTrackAlign(curve['ec2'], self.end_left)
+
+    def test_curve_radius_right(self):
+        curve = self.straight_high.curve_fit_radius(600, self.end_right)
+        self.assertTrackAlign(curve['ec2'], self.end_right)
+
+    def test_curve_radius_can_fit(self):
+        curve = self.straight_high.curve_fit_radius(1200, self.end_low_angle)
+        self.assertTrackAlign(curve['ec2'], self.end_low_angle)
+
+    def test_curve_radius_far_left(self):
+        self.straight_low.clockwise = False
+        curve = self.straight_low.curve_fit_radius(225, self.end_far_left)
+        self.assertTrackAlign(curve['ec2'], self.end_far_left)
+
+    def test_curve_radius_far_right(self):
+        self.straight_low.clockwise = True
+        curve = self.straight_low.curve_fit_radius(225, self.end_far_right)
+        self.assertTrackAlign(curve['ec2'], self.end_far_right)
+
+
+class CurveFitPointTests(BaseTCTests):
+
+    def test_exception_curve_point_end_curved(self):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'end track must be straight'):
+            self.straight_high.curve_fit_point(self.start_curved)
+
+    def test_exception_curve_point_parallel(self):
+        self.end_reverse_left.bearing = self.end_reverse_left.bearing.flip()
+        with self.assertRaisesRegex(ec.curve.CurveException, 'must not be parallel'):
+            self.straight_high.curve_fit_point(self.end_reverse_left)
+
+    def test_exception_curve_point_wrong_object(self):
+        with self.assertRaisesRegex(AttributeError, 'TrackCoord'):
+            self.straight_high.curve_fit_point(None)
+
+    def test_exception_curve_point_too_close(self):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'is too close'):
+            self.straight_high.curve_fit_point(self.end_reverse_left)
+
+    def test_curve_point_left(self):
+        curve = self.straight_high.curve_fit_point(self.end_left)
+        self.assertTrackAlign(curve['ec2'], self.end_left)
+
+    def test_curve_point_right(self):
+        curve = self.straight_high.curve_fit_point(self.end_right)
+        self.assertTrackAlign(curve['ec2'], self.end_right)
+
+    def test_curve_point_far_left(self):
+        curve = self.straight_low.curve_fit_point(self.end_far_left)
+        self.assertTrackAlign(curve['ec2'], self.end_far_left)
+
+    def test_curve_point_far_right(self):
+        curve = self.straight_low.curve_fit_point(self.end_far_right)
+        self.assertTrackAlign(curve['ec2'], self.end_far_right)
+
+    def test_curve_point_reverse_left(self):
+        curve = self.straight_low.curve_fit_point(self.end_reverse_left)
+        self.assertTrackAlign(curve['ec2'], self.end_reverse_left)
+
+    def test_curve_point_reverse_right(self):
+        curve = self.straight_low.curve_fit_point(self.end_reverse_right)
+        self.assertTrackAlign(curve['ec2'], self.end_reverse_right)
+
+    def test_curve_point_curved_right(self):
+        self.left.get_static_radius(self.start_curved_add)
+        curve = self.straight_low.curve_fit_point(self.end_right)
+        self.assertTrackAlign(curve['ec2'], self.end_right)

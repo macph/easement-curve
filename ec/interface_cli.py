@@ -13,10 +13,6 @@ help_text = """
 This is the help text.
 """
 
-# TODO: Script option to allow verbose printing? Is this needed if we implement something like traceback?
-# TODO: Add multilanguage support - check out gettext.
-# TODO: Add option to set speeds (eg mainline, yard, etc) and language via json/yml.
-
 
 class InterfaceException(Exception):
     pass

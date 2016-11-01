@@ -50,6 +50,34 @@ class CustomAssertions(object):
             message = '\n'.join([msg] + ls_inequalities)
             raise AssertionError(message)
 
+    @staticmethod
+    def assertTrackAlign(end_coord, other_coord, places=3):
+        """ Checks whether two TrackCoord objects are aligned properly,
+            with the right bearing and their line equations sufficiently
+            close together.
+        """
+        try:
+            end = (end_coord.pos_x, end_coord.pos_z)
+            other = (other_coord.pos_x, other_coord.pos_z)
+            line = ec.common.LinearEquation(other_coord.bearing, other)
+        except AttributeError as err:
+            raise AttributeError("end_coord and other_coord must be "
+                                 "TrackCoord objects") from err
+
+        ls_msg = []
+        if not other_coord.bearing.nearly_equal(end_coord.bearing):
+            ls_msg.append('{f:.3f} != {s:.3f}'.format(
+                f=end_coord.bearing.deg, s=other_coord.bearing.deg))
+        if round(line.dist(end, absolute=True), places) != 0:
+            ls_msg.append('Distance from other track = {d:.3f}'.format(
+                d=line.dist(end, absolute=True)))
+
+        if not ls_msg:
+            return
+        else:
+            message = '\n'.join([''] + ls_msg)
+            raise AssertionError(message)
+
 
 class TransformTests(unittest.TestCase, CustomAssertions):
 
