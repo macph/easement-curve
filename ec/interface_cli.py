@@ -25,7 +25,7 @@ class Interface(object):
     re_method_2 = re.compile('^\(([^()]+)\)[\s,]*\(([^()]+)\)\s*$')
     re_method_3 = re.compile('^\(([^()]+)\)[\s,]*\(([^()]+)\)[\s,]*\(([^()]+)\)\s*$')
 
-    def __init__(self, *args):
+    def __init__(self):
 
         self._kph = None
         self.minimum_radius = None
@@ -35,16 +35,7 @@ class Interface(object):
         self.curve_radius = None
         self.language = 'en'
 
-        # Checks arguments
-        if len(args) == 1:
-            self.run()
-        elif len(args) == 2 and args[1].upper() == 'HELP':
-            print(help_text)
-        else:
-            print("Wrong arguments inputted.", help_text)
-            sys.exit(2)
-
-        sys.exit(0)
+        self.run()
 
     @property
     def speed_radius(self):
@@ -361,3 +352,11 @@ class Interface(object):
             table += ['  |  '.join(row_data)]
 
         return ' ' + '\n '.join(table)
+
+
+def main():
+    Interface()
+
+
+if __name__ == '__main__':
+    main()

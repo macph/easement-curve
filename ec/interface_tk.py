@@ -160,10 +160,11 @@ class App(object):
 
     def message(self):
         self.msg = Label(self.container, text="", padding="4 0 0 4")
+        self.msg.config(width=102, wraplength=int(get_text_length(102)))
         self.msg.grid(column=0, row=4, columnspan=2, sticky=(W, E))
 
-    def refresh_message(self, color='black'):
-        if color == 'red':
+    def refresh_message(self, colour='black'):
+        if colour == 'red':
             self.msg.config(text=self.error, style='Red.TLabel')
         else:
             self.msg.config(text=self.error, style='TLabel')

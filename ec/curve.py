@@ -77,12 +77,11 @@ class TrackCoord(object):
     @property
     def quad(self):
         bearing = self._bearing.deg
-        quadrants = {
-            0: (bearing, Q.NE.name),
-            90: (180 - bearing, Q.SE.name),
-            180: (bearing - 180, Q.SW.name),
-            270: (360 - bearing, Q.NW.name)
-        }
+        quadrants = {0: (bearing, Q.NE.name),
+                     90: (180 - bearing, Q.SE.name),
+                     180: (bearing - 180, Q.SW.name),
+                     270: (360 - bearing, Q.NW.name)}
+
         for r in quadrants.keys():
             if r <= bearing < r + 90:
                 return quadrants[r]
@@ -102,18 +101,19 @@ class TrackCoord(object):
         except ValueError as err:
             raise ValueError("The quad property requires two values: "
                              "rotation and quadrant.") from err
-        quadrants = {
-            Q.NE: abs(rotation),
-            Q.SE: 180 - abs(rotation),
-            Q.SW: 180 + abs(rotation),
-            Q.NW: 360 - abs(rotation)
-        }
+
+        quadrants = {Q.NE: abs(rotation),
+                     Q.SE: 180 - abs(rotation),
+                     Q.SW: 180 + abs(rotation),
+                     Q.NW: 360 - abs(rotation)}
+
         try:
             if abs(rotation) <= 90:
                 self._bearing = Bearing(quadrants[quad])
             else:
                 raise CoordException("The y-axis rotation must be in the "
                                      "range [-90, 90].")
+
         except KeyError:
             raise CoordException("{!r} is not a valid quadrant.".format(quad))
         except TypeError as err:
@@ -203,6 +203,7 @@ class TrackCoord(object):
             radius = self.radius
             str_r = ("Curved section: radius of curvature "
                      "{:.0f}".format(radius))
+
         return ("{r} position ({x:.3f}, {z:.3f}) and bearing of {a:.3f}"
                 "".format(r=str_r, x=self.pos_x, z=self.pos_z,
                           a=self.bearing.deg))
@@ -272,6 +273,7 @@ class TrackSection(object):
         a, t = 1 / math.sqrt(2 * self.factor), length
         # Derivatives of the polynomials from get_fresnel()
         xp, zp = a**2*t**2, 1 - a**4*t**4 / 2
+
         return math.acos(zp / math.hypot(xp, zp))
 
     def get_curvature(self, length):
@@ -303,6 +305,7 @@ class TrackSection(object):
         except AttributeError as err:
             raise AttributeError("The other coord needs to be an TrackCoord "
                                  "object.") from err
+
         dist_align = align.dist(end_point)
         if 0 <= dist_align < 0.0005:
             raise TrackException("A curve cannot be formed from a pair of "
@@ -321,6 +324,7 @@ class TrackSection(object):
                             self.start.pos_z + math.cos(perpendicular.rad))
             self.start.curvature = -1 / roc if \
                 align.same_side(end_point, right_vector) else 1 / roc
+
         else:
             return roc
 
@@ -377,6 +381,7 @@ class TrackSection(object):
         # Adjusting alignment of curves
         if not self.clockwise:
             r0, r1 = -r0, -r1
+
         if reverse:
             r0, r1 = r0.flip(), r1.flip()
 
@@ -483,6 +488,7 @@ class TrackCurve(TrackSection):
         if not apply_cw or self.clockwise is None:
             self.clockwise = cw
             return diff_b
+
         else:
             return diff_b if self.clockwise is cw else -diff_b
 
@@ -523,6 +529,7 @@ class TrackCurve(TrackSection):
         try:
             if other.curvature != 0 or self.start.curvature != 0:
                 raise CurveException('Both tracks must be straight.')
+
             if self.start.bearing.nearly_equal(other.bearing):
                 raise CurveException('Tracks 1 and 2 must not be parallel.')
             elif self.start.bearing.nearly_equal(other.bearing.flip()):
@@ -531,6 +538,7 @@ class TrackCurve(TrackSection):
                 # along tracks.
                 raise CurveException('This method does not work with tracks '
                                      'parallel in opposite directions.')
+
         except AttributeError as err:
             raise AttributeError('Tracks 1 and 2 need to be TrackCoord '
                                  'objects.') from err
@@ -573,7 +581,9 @@ class TrackCurve(TrackSection):
 
         return curve_data
 
-    def curve_fit_point(self, other, places=4, iterations=50):
+# TODO: Raise exception if curved track tries to join curve in opp direction (diff_angle > pi)
+
+    def curve_fit_point(self, other, places=4, iterations=100):
         """ Extends a curve with easement sections from a point on a track,
             which can be curved, to join with a straight track. Uses the
             bisection method to find the correct radius of curvature by
@@ -587,6 +597,7 @@ class TrackCurve(TrackSection):
                 raise CurveException('The end track must be straight.')
             if self.start.bearing.nearly_equal(other.bearing):
                 raise CurveException('Tracks 1 and 2 must not be parallel.')
+
         except AttributeError as err:
             raise AttributeError('Tracks 1 and 2 need to be TrackCoord '
                                  'objects.') from err
@@ -594,7 +605,11 @@ class TrackCurve(TrackSection):
         # Setting clockwise direction if starting curvature is not straight
         if self.start.curvature != 0:
             self.clockwise = self.start.curvature < 0
-            diff_angle = self.find_diff_angle(other)
+            diff_angle = self.find_diff_angle(other, True)
+            if diff_angle.rad > math.pi:
+                raise CurveException('The curved track is not aligned in the '
+                                     'same direction as the other track.')
+
         else:
             diff_angle = self.find_diff_angle(other)
             if not self.check_start_alignment(other) and not \
@@ -606,8 +621,8 @@ class TrackCurve(TrackSection):
 
         line_other = LinearEquation(bearing=other.bearing,
                                     point=(other.pos_x, other.pos_z))
-        # Set upper and lower bounds, and set starting curvature
         start_point = (self.start.pos_x, self.start.pos_z)
+        # Set upper and lower bounds, and set starting curvature
         n_floor, n_ceiling = None, None
         curvature = 1 / self.minimum_radius
         curvature *= -1 if self.clockwise else 1
@@ -620,7 +635,7 @@ class TrackCurve(TrackSection):
             pre_angle = 0
 
         # Ensuring it runs in a loop with a limited number of iterations
-        for n in range(iterations):
+        for j in range(iterations):
             easement_length = self.get_length(curvature)
             static_curve_angle = diff_angle.rad - self.get_angle(easement_length) \
                 - abs(self.get_angle(easement_length) - pre_angle)
@@ -654,12 +669,12 @@ class TrackCurve(TrackSection):
                     return curve_data
 
                 elif line_other.same_side(start_point, end_point):
-                    # They are both positive or both negative, - same side
-                    # Checking if absolute curvature is bigger than floor
-                    if n_floor is None:
-                        n_floor = curvature
-                    else:
-                        n_floor = curvature
+                    # Same side, ie curve hasn't reached the other track - need larger RoC
+                    n_floor = curvature
+
+                elif not line_other.same_side(start_point, end_point):
+                    # Opposite sides, ie curve overshot - need smaller RoC
+                    n_ceiling = curvature
 
                 # Zero length of static curve but still overshot - won't work
                 elif not line_other.same_side(start_point, end_point) \
@@ -668,21 +683,13 @@ class TrackCurve(TrackSection):
                         "The starting point is too close to the second track "
                         "for this curve - try moving the start point away.")
 
-                elif not line_other.same_side(start_point, end_point):
-                    # They don't have the same sign, therefore opposite sides
-                    # Checking if absolute curvature is smaller than ceiling
-                    if n_ceiling is None:
-                        n_ceiling = curvature
-                    else:
-                        n_ceiling = curvature
-
                 else:
                     raise ValueError("Something went wrong here - dist",
                                      line_other.dist(end_point))
 
             if n_ceiling is not None:
                 if n_floor is not None:
-                    # Both floor and ceiling set, so find midpoint
+                    # Both floor and ceiling are set, so find midpoint
                     curvature = (n_ceiling + n_floor)/2
                 else:
                     # Ceiling value is set but not under so reduce RoC

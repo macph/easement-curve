@@ -1,6 +1,12 @@
 # Easement curve calculator
 
-This is a tool with one purpose: to calculate the geometry of easement curves in Train Simulator 2016 necessary to join up tracks.
+This is a tool for calculating the geometry of easement curves in Train Simulator 2016 necessary to join up tracks.
+
+## Background
+
+Easement curves are used to join railway tracks of different curvature, like for example a straight track (with zero curvature) and a track arc with a constant radius of curvature. They are necessary for gradual transistions in centrifugal force which act on trains as they move around curves - if there was no easement curve there would be a jerky moment as the centrifugal force is instantly applied upon entering an track arc.
+
+Train Simulator (TS2016) has a route editor and supports construction of easement curves, but it does not have any ability to join up tracks with easement curves automatically. Route building with easement curves can be time consuming especially as easement curves change in length with radius of curvature. This tool attempts to make that easier by taking in coordinates of tracks and outputting the coordinates of easement curves that fit these tracks.
 
 ## Installation
 

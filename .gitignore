@@ -27,10 +27,7 @@ var/
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+!ec_build.spec
 
 # Unit test / coverage reports
 htmlcov/
@@ -47,32 +44,6 @@ coverage.xml
 *.mo
 *.pot
 
-# Django stuff:
-*.log
-local_settings.py
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# celery beat schedule file
-celerybeat-schedule
-
 # dotenv
 .env
 
@@ -83,12 +54,6 @@ ENV/
 
 # PyCharm project settings
 .idea/
-
-# Spyder project settings
-.spyderproject
-
-# Rope project settings
-.ropeproject
 
 # Working files
 workings/
@@ -109,38 +74,5 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 
-# Windows scripts
-*.ps1
-*.bat
-
 # Windows shortcuts
 *.lnk
-
-# =========================
-# Operating System Files
-# =========================
-
-# OSX
-# =========================
-
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Thumbnails
-._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
