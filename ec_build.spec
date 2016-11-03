@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['ec\\__main__.py'],
+a = Analysis(['__main__.py'],
              pathex=['C:\\Users\\Ewan\\Projects\\EC'],
              binaries=None,
              datas=None,
@@ -25,4 +25,4 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=False )
+          console=False)

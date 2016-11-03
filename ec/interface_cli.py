@@ -6,7 +6,7 @@ import re
 import sys
 
 from . import __version__
-import ec.curve as curve
+from . import curve
 
 
 help_text = """
@@ -26,14 +26,14 @@ class Interface(object):
     re_method_3 = re.compile('^\(([^()]+)\)[\s,]*\(([^()]+)\)[\s,]*\(([^()]+)\)\s*$')
 
     def __init__(self):
-
+        # Properties
         self._kph = None
+
         self.minimum_radius = None
         self.track0 = None
         self.track1 = None
         self.track2 = None
         self.curve_radius = None
-        self.language = 'en'
 
         self.run()
 
@@ -354,9 +354,5 @@ class Interface(object):
         return ' ' + '\n '.join(table)
 
 
-def main():
-    Interface()
-
-
 if __name__ == '__main__':
-    main()
+    Interface()

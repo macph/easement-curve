@@ -6,7 +6,7 @@ from tkinter import *
 from tkinter.font import *
 from tkinter.ttk import *
 
-import ec.curve as curve
+from . import curve
 
 # TODO: Clean up the code and test??
 # TODO: Find a better place for the verbose strings.
@@ -24,8 +24,13 @@ def get_text_length(length, font='TkDefaultFont'):
     """ Retrieves the length of a string defined by number of characters
         in terms of pixels.
     """
-    base_length = nametofont(font).measure('e'*80)
+    base_length = nametofont(font).measure('e' * 80)
     return round(base_length * length / 80)
+
+
+def multi_string_var(i=4):
+    """ Creates a list of multiple StringVar instances. """
+    return [StringVar() for j in range(i)]
 
 
 class InterfaceException(Exception):
@@ -48,19 +53,22 @@ class App(object):
         # Properties
         self._kph = None
 
+        # Whole frame
         self.container = Frame(parent, padding="5 5 5 5")
         self.container.grid(row=0, column=0)
 
+        # Calc method select and description
         self.method = StringVar()
         self.method_heading, self.method_description = None, None
         self.select_method()
         self.show_method_description()
 
+        # Enter speed tolerance (in mph or km/h) and minimum radius
         self.speed, self.dim = DoubleVar(), StringVar()
         self.min_radius = IntVar()
         self.select_speed_radius()
 
-        def multi_string_var(i=4): return [StringVar() for j in range(i)]
+        # Create lists of stringvars and grid for entering data
         self.line0, self.line1, self.line2 = \
             multi_string_var(), multi_string_var(), multi_string_var()
         self.radius, self.cw = StringVar(), StringVar()
@@ -68,11 +76,13 @@ class App(object):
                         '3': EntryMethod3}
         self.current_entry = self.entries[self.m](self.container, self)
 
+        # Message
         Style().configure("Red.TLabel", foreground="red")
-        self.msg, self.error = None, None
+        self.msg = None
         self.actions()
         self.message()
 
+        # 2 tabs: results table and instructions
         self.result, self.instruction = None, None
         self.results()
 
@@ -159,15 +169,15 @@ class App(object):
         calc.grid(column=0, row=1, sticky=E)
 
     def message(self):
-        self.msg = Label(self.container, text="", padding="4 0 0 4")
-        self.msg.config(width=102, wraplength=int(get_text_length(102)))
+        self.msg = Label(self.container, text='', padding="4 0 0 4")
+        self.msg.config(width=92, wraplength=int(get_text_length(92)))
         self.msg.grid(column=0, row=4, columnspan=2, sticky=(W, E))
 
-    def refresh_message(self, colour='black'):
+    def refresh_message(self, message, colour='black'):
         if colour == 'red':
-            self.msg.config(text=self.error, style='Red.TLabel')
+            self.msg.config(text=message, style='Red.TLabel')
         else:
-            self.msg.config(text=self.error, style='TLabel')
+            self.msg.config(text=message, style='TLabel')
 
     def results(self):
         n = Notebook(self.container)
@@ -185,8 +195,8 @@ class App(object):
         self.radius.set('')
         self.cw.set('N/A')
         for line in [self.line0, self.line1, self.line2]:
-            for i in line:
-                i.set('')
+            for entry in line:
+                entry.set('')
 
     def calculate(self):
         if self.dim.get() == 'mph':
@@ -196,22 +206,23 @@ class App(object):
 
         try:
             result = self.current_entry.get_result()
+
         except AttributeError as err:
-            self.error = "Error: All fields must be filled in."
-            self.refresh_message('red')
+            self.refresh_message('Error: All fields must be filled in.', 'red')
             raise AttributeError from err
+
         except (InterfaceException, curve.CoordException, curve.TrackException,
                 curve.CurveException) as err:
             err_string = {InterfaceException: "Input error: ",
                           curve.CoordException: "Coordinate error: ",
                           curve.TrackException: "Track section error: ",
                           curve.CurveException: "Curve calculation error: "}
-            self.error = err_string[type(err)] + str(err)
-            self.refresh_message('red')
+            message = err_string[type(err)] + str(err)
+            self.refresh_message(message, 'red')
             return
+
         else:
-            self.error = "All OK."
-            self.refresh_message()
+            self.refresh_message('All OK.')
 
         order = ("Start point", "Easement curve 1", "Static curve",
                  "Easement curve 2")
@@ -235,6 +246,7 @@ class App(object):
                     roc_text = ts.clockwise.capitalize()
                 else:
                     roc_text = '{0:.1f} {1}'.format(ts.radius, ts.clockwise)
+
             else:
                 # Both values needed.
                 if ts.org_curvature != 0 and ts.curvature != 0:

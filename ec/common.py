@@ -4,28 +4,9 @@
 import math
 
 
-class Verbose(object):
-    """ Used to print calculation data if the verbose parameter is
-        specified, but by default it does not.
-    """
-    verbose = False
-    counter = 0
-
-    @classmethod
-    def __init__(cls, *args, **kwargs):
-        if cls.verbose:
-            c = '{:3d}'.format(cls.counter) if cls.counter > 0 else ''
-            print(c, *args, **kwargs)
-            cls.counter += 1
-
-    @classmethod
-    def reset(cls):
-        cls.counter = 1
-
-
 def transform(a, r, b=(0, 0), c=None):
     """ Rotates a point a = (x, y) around axis b = (x0, y0) by r clockwise
-        and translates by c = (x1, y1) such that b = c.
+        and translates by c = (x1, y1) such that b -> c.
         a, b, c are all tuples.
         r can be either Bearing object or an int/float in radians.
         By default: b = c = (0, 0), the origin.

@@ -7,7 +7,7 @@ def main():
     if len(argv) == 1 or len(argv) == 2 and argv[1].lower() == 'tk':
         ec.interface_tk.main()
     elif len(argv) == 2 and argv[1].lower() == 'cli':
-        ec.interface_cli.main()
+        ec.interface_cli.Interface()
     else:
         print("Invalid arguments. Need 'cli' or 'tk'.")
 

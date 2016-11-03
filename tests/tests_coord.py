@@ -1,4 +1,4 @@
-# Ewan Macpherson September 2016
+# MIT License, copyright Ewan Macpherson, 2016; see LICENCE in root directory
 # Test script for the TrackCoord class
 
 import math

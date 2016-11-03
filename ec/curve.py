@@ -5,7 +5,7 @@ from copy import copy
 from enum import Enum
 import math
 
-from ec.common import Bearing, LinearEquation, transform
+from .common import Bearing, LinearEquation, transform
 
 
 class Q(Enum):
@@ -429,10 +429,6 @@ class TrackSection(object):
 
 class TrackCurve(TrackSection):
 
-    def __init__(self, curve, minimum, speed):
-        """ Inherits from TrackSection. """
-        super(TrackCurve, self).__init__(curve, minimum, speed)
-
     def ts_easement_curve(self, curve, end_curv):
         """ Creates a TrackSection instance and returns its easement_curve
             method, for operational and reading ease.
@@ -488,7 +484,6 @@ class TrackCurve(TrackSection):
         if not apply_cw or self.clockwise is None:
             self.clockwise = cw
             return diff_b
-
         else:
             return diff_b if self.clockwise is cw else -diff_b
 
