@@ -597,7 +597,7 @@ class TrackCurve(TrackSection):
                 if 'The easement curves are too long' in str(err):
                     n_floor = roc
                 else:
-                    raise CurveException from err
+                    raise
 
             else:
                 static_length = curve['static'].org_length
