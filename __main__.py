@@ -1,12 +1,17 @@
+# MIT License, copyright Ewan Macpherson, 2016; see LICENCE in root directory
+# Main script function
+
+import sys
 import ec.interface_tk
 import ec.interface_cli
-from sys import argv
 
 
-def main():
-    if len(argv) == 1 or len(argv) == 2 and argv[1].lower() == 'tk':
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    if not argv or argv == ['tk']:
         ec.interface_tk.main()
-    elif len(argv) == 2 and argv[1].lower() == 'cli':
+    elif argv == ['cli']:
         ec.interface_cli.Interface()
     else:
         print("Invalid arguments. Need 'cli' or 'tk'.")

@@ -9,7 +9,9 @@ from tkinter.ttk import *
 from . import curve
 
 # TODO: Clean up the code and test??
-# TODO: Find a better place for the verbose strings.
+# TODO: Sort out the text.
+# TODO: Add docstrings.
+# TODO: multi_string_var may be better as a dictionary, but care needs to be taken with EntryM.
 
 instructions = """
 1. Find a point with coordinates ({x0}, {z1}) on the first straight track, and cut it at that point.
@@ -180,16 +182,8 @@ class App(object):
             self.msg.config(text=message, style='TLabel')
 
     def results(self):
-        n = Notebook(self.container)
-        n.grid(column=0, row=5, sticky=(W, E), columnspan=2)
-
-        self.result = Result(n)
-        self.instruction = Frame(n)
-        n.add(self.result, text='Results')
-        n.add(self.instruction, text='Instructions')
-
-        Label(self.instruction, text=instructions).grid(row=0, column=0,
-                                                        sticky=(W, E))
+        self.result = Result(self.container)
+        self.result.grid(column=0, row=5, sticky=(W, E), columnspan=2)
 
     def clear(self):
         self.radius.set('')
@@ -379,12 +373,11 @@ class EntryMethod1(EntryM):
             raise InterfaceException('Radius of curvature must be a number.')
 
         track = curve.TrackCurve(curve=start_track, **self.args())
-        if self.controller.cw.get() == 'CW':
-            track.clockwise = True
-        elif self.controller.cw.get() == 'ACW':
-            track.clockwise = False
+        dict_cw = {'CW': True, 'ACW': False}
+        clockwise = dict_cw.get(self.controller.cw.get())
 
-        return track.curve_fit_radius(radius=curve_radius, other=end_track)
+        return track.curve_fit_radius(other=end_track, radius=curve_radius,
+                                      clockwise=clockwise)
 
 
 class EntryMethod2(EntryM):
@@ -431,8 +424,7 @@ class EntryMethod3(EntryM):
         end_track = self.get_coord(self.controller.line2)
 
         track = curve.TrackCurve(curve=start_track, **self.args())
-        track.get_static_radius(pre_track)
-        return track.curve_fit_point(other=end_track)
+        return track.curve_fit_point(other=end_track, add_point=pre_track)
 
 
 class Result(Frame):
@@ -441,7 +433,6 @@ class Result(Frame):
         super(Result, self).__init__(parent)
         self.treeview = None
         self.create_table()
-        self.grid(sticky=(N, S, W, E))
 
     def create_table(self):
         tv = Treeview(self, height=5)

@@ -142,49 +142,51 @@ class CurveFitRadiusTests(BaseTCTests):
 
     def test_exception_curve_radius_minimum_radius(self):
         with self.assertRaisesRegex(ec.curve.CurveException, 'Radius 350 must be greater'):
-            self.straight_high.curve_fit_radius(350, self.end_left)
+            self.straight_high.curve_fit_radius(self.end_left, 350)
 
     def test_exception_curve_radius_wrong_object(self):
         with self.assertRaisesRegex(AttributeError, 'need to be TrackCoord'):
-            self.straight_high.curve_fit_radius(600, None)
+            self.straight_high.curve_fit_radius(None, 600)
 
     def test_exception_curve_radius_cannot_fit(self):
         with self.assertRaisesRegex(ec.curve.CurveException, 'The easement curves are too long'):
-            self.straight_high.curve_fit_radius(500, self.end_low_angle)
+            self.straight_high.curve_fit_radius(self.end_low_angle, 500)
 
     def test_exception_curve_radius_curved(self):
         with self.assertRaisesRegex(ec.curve.CurveException, 'Both tracks must be straight'):
-            self.right.curve_fit_radius(500, self.end_left)
+            self.right.curve_fit_radius(self.end_left, 500)
 
     def test_exception_curve_radius_reverse(self):
         with self.assertRaisesRegex(ec.curve.CurveException, 'This method does not work'):
-            self.straight_high.curve_fit_radius(500, self.end_reverse_left)
+            self.straight_high.curve_fit_radius(self.end_reverse_left, 500)
 
     def test_curve_assert_radius(self):
-        curve = self.straight_high.curve_fit_radius(600, self.end_left)
+        curve = self.straight_high.curve_fit_radius(self.end_left, 600)
         self.assertAlmostEqual(curve['static'].radius, 600)
     
     def test_curve_radius_left(self):
-        curve = self.straight_high.curve_fit_radius(600, self.end_left)
+        curve = self.straight_high.curve_fit_radius(self.end_left, 600)
         self.assertTrackAlign(curve['ec2'], self.end_left)
 
     def test_curve_radius_right(self):
-        curve = self.straight_high.curve_fit_radius(600, self.end_right)
+        curve = self.straight_high.curve_fit_radius(self.end_right, 600)
         self.assertTrackAlign(curve['ec2'], self.end_right)
 
     def test_curve_radius_can_fit(self):
-        curve = self.straight_high.curve_fit_radius(1200, self.end_low_angle)
+        curve = self.straight_high.curve_fit_radius(self.end_low_angle, 1200)
         self.assertTrackAlign(curve['ec2'], self.end_low_angle)
 
     def test_curve_radius_far_left(self):
-        self.straight_low.clockwise = False
-        curve = self.straight_low.curve_fit_radius(225, self.end_far_left)
+        curve = self.straight_low.curve_fit_radius(self.end_far_left, 225, False)
         self.assertTrackAlign(curve['ec2'], self.end_far_left)
 
     def test_curve_radius_far_right(self):
-        self.straight_low.clockwise = True
-        curve = self.straight_low.curve_fit_radius(225, self.end_far_right)
+        curve = self.straight_low.curve_fit_radius(self.end_far_right, 225, True)
         self.assertTrackAlign(curve['ec2'], self.end_far_right)
+
+
+class CurveFitLengthTests(BaseTCTests):
+    pass
 
 
 class CurveFitPointTests(BaseTCTests):
@@ -236,6 +238,5 @@ class CurveFitPointTests(BaseTCTests):
         self.assertTrackAlign(curve['ec2'], self.end_reverse_right)
 
     def test_curve_point_curved_right(self):
-        self.right.get_static_radius(self.start_curved_add)
-        curve = self.right.curve_fit_point(self.end_right)
+        curve = self.right.curve_fit_point(self.end_right, self.start_curved_add)
         self.assertTrackAlign(curve['ec2'], self.end_right)

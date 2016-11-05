@@ -8,6 +8,8 @@ import sys
 from . import __version__
 from . import curve
 
+# TODO: Fix any problems and add all text.
+
 
 help_text = """
 This is the help text.
@@ -21,7 +23,7 @@ class InterfaceException(Exception):
 class Interface(object):
 
     re_speed_radius = re.compile('^([.,\d]+)\s*([/\w]+)\s+(\d+)\s*$')
-    re_method_1 = re.compile('^\(([^()]+)\)[\s,]*\(([^()]+)\)[\s,]*([-.\d]+)\s*$')
+    re_method_1 = re.compile('^\(([^()]+)\)[\s,]*\(([^()]+)\)[\s,]*([\d]+)[\s,]*$')
     re_method_2 = re.compile('^\(([^()]+)\)[\s,]*\(([^()]+)\)\s*$')
     re_method_3 = re.compile('^\(([^()]+)\)[\s,]*\(([^()]+)\)[\s,]*\(([^()]+)\)\s*$')
 
@@ -180,7 +182,7 @@ class Interface(object):
 
                 track = curve.TrackCurve(curve=start_track, **curve_args)
                 result = track.curve_fit_radius(
-                    radius=self.curve_radius, other=end_track)
+                    other=end_track, radius=self.curve_radius)
 
             elif method == 2:
                 print("Method 2 picked with speed tolerance {0:.1f} mph / "
@@ -203,8 +205,7 @@ class Interface(object):
                 end_track = self.get_coord(find_data.group(3))
 
                 track = curve.TrackCurve(curve=start_track, **curve_args)
-                track.get_static_radius(pre_track)
-                result = track.curve_fit_point(other=end_track)
+                result = track.curve_fit_point(other=end_track, add_point=pre_track)
 
             else:
                 raise InterfaceException("An invalid method was used")

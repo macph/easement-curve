@@ -4,15 +4,15 @@ import re
 from setuptools import setup
 
 
-def get_version(version_file):
-    re_ver= re.compile('^__version__\s*=\s*[\'\"](.+)[\'\"][\s\n]*$')
-    with open(version_file, 'r') as initf:
+def get_version(init_file):
+    re_ver = re.compile('^__version__\s*=\s*[\'\"](.+)[\'\"][\s\n]*$')
+    with open(init_file, 'r') as initf:
         for line in initf:
-            if line.startswith('__version__'):
-                version = re_ver.search(line).group(1)
+            if re_ver.match(line):
+                version = re_ver.match(line).group(1)
                 break
         else:
-            raise ValueError("__version__ not found in", version_file)
+            raise ValueError("__version__ not found in", init_file)
 
         return version
 

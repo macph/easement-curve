@@ -291,7 +291,7 @@ class TrackSection(object):
         """
         return self.factor * abs(curvature)
 
-    def get_static_radius(self, other, apply_result=True):
+    def get_static_radius(self, add, apply_result=True):
         """ Finds the radius of curvature for a static curve from a pair of
             using the starting coordinates and another TrackCoord object, both
             on the same curve.
@@ -301,7 +301,7 @@ class TrackSection(object):
         align = LinearEquation(self.start.bearing,
                                (self.start.pos_x, self.start.pos_z))
         try:
-            end_point = (other.pos_x, other.pos_z)
+            end_point = (add.pos_x, add.pos_z)
         except AttributeError as err:
             raise AttributeError("The other coord needs to be an TrackCoord "
                                  "object.") from err
@@ -311,8 +311,8 @@ class TrackSection(object):
             raise TrackException("A curve cannot be formed from a pair of "
                                  "coordinates already on the same line.")
 
-        chord_length = math.hypot(self.start.pos_x - other.pos_x,
-                                  self.start.pos_z - other.pos_z)
+        chord_length = math.hypot(self.start.pos_x - add.pos_x,
+                                  self.start.pos_z - add.pos_z)
         # Triangle with chord and two tangents is an isoceles triangle; diff bearing is double that of interior angle
         diff_angle = 2 * math.asin(dist_align / chord_length)
         roc = chord_length / (2 * math.sin(diff_angle/2))
@@ -512,7 +512,7 @@ class TrackCurve(TrackSection):
 
             return not first.same_side(point_beyond, start_point)
 
-    def curve_fit_radius(self, radius, other):
+    def curve_fit_radius(self, other, radius, clockwise=None):
         """ Finds a curve with easement sections and static curve of a certain
             radius of curvature that fits the two straight tracks.
         """
@@ -539,6 +539,7 @@ class TrackCurve(TrackSection):
                                  'objects.') from err
 
         # Sets signed curvature and angle difference between 2 straight tracks
+        self.clockwise = clockwise
         diff_angle = self.find_diff_angle(other, True)
         curvature = -1 / radius if self.clockwise else 1 / radius
 
@@ -576,9 +577,59 @@ class TrackCurve(TrackSection):
 
         return curve_data
 
-# TODO: Raise exception if curved track tries to join curve in opp direction (diff_angle > pi)
+    def curve_fit_length(self, other, length, clockwise=None, places=4,
+                         iterations=50):
+        """ Finds a curve with easement sections and static curve of a certain
+            length that fits the two tracks, by using the bisection method to
+            find the correct radius of curvature.
+        """
+        n_floor, n_ceiling = None, None
+        roc = self.minimum_radius
 
-    def curve_fit_point(self, other, places=4, iterations=100):
+        # Let initial curve_fit_radius eval handle all the CurveExceptions
+        # Run loop for a set number of iterations
+        for j in range(iterations):
+            try:
+                curve = self.curve_fit_radius(other=other, radius=roc,
+                                              clockwise=clockwise)
+
+            except CurveException as err:
+                if 'The easement curves are too long' in str(err):
+                    n_floor = roc
+                else:
+                    raise CurveException from err
+
+            else:
+                static_length = curve['static'].org_length
+                if round(static_length - length, places) == 0:
+                    # Accurate enough
+                    return curve
+                elif static_length > length:
+                    # Static curve too long - try reducing RoC to increase easement length
+                    n_ceiling = roc
+                elif static_length < length:
+                    # Static curve too short - try raising RoC to decrease easement length
+                    n_floor = roc
+
+            if n_floor is not None:
+                if n_ceiling is not None:
+                    roc = (n_floor + n_ceiling) / 2
+                else:
+                    # No ceiling yet, so raise RoC
+                    roc *= 2
+            else:
+                # Floor should have been set with first iteration
+                raise CurveException('The required radius of curvature for '
+                                     'static curve of length {} is too small.'
+                                     ''.format(length))
+
+        # Loop runs out of iterations
+        else:
+            raise CurveException(
+                "A suitable alignment was not found after {0} iterations. "
+                "".format(iterations))
+
+    def curve_fit_point(self, other, add_point=None, places=4, iterations=100):
         """ Extends a curve with easement sections from a point on a track,
             which can be curved, to join with a straight track. Uses the
             bisection method to find the correct radius of curvature by
@@ -596,6 +647,13 @@ class TrackCurve(TrackSection):
         except AttributeError as err:
             raise AttributeError('Tracks 1 and 2 need to be TrackCoord '
                                  'objects.') from err
+
+        if add_point is not None:
+            try:
+                self.get_static_radius(add_point)
+            except AttributeError as err:
+                raise AttributeError('Add_point must be another TrackCoord '
+                                     'object.') from err
 
         # Setting clockwise direction if starting curvature is not straight
         if self.start.curvature != 0:
@@ -682,23 +740,15 @@ class TrackCurve(TrackSection):
                     raise ValueError("Something went wrong here - dist",
                                      line_other.dist(end_point))
 
-            if n_ceiling is not None:
-                if n_floor is not None:
+            if n_floor is not None:
+                if n_ceiling is not None:
                     # Both floor and ceiling are set, so find midpoint
                     curvature = (n_ceiling + n_floor)/2
                 else:
                     # Ceiling value is set but not under so reduce RoC
-                    curvature *= 2
-
-            else:
-                if n_floor is not None:
-                    # Floor value is set but not over so increase RoC
                     curvature *= 1/2
-                else:
-                    raise ValueError("Something went wrong here - dist "
-                                     "not being set as over or under.")
-
-            if curvature > 1 / self.minimum_radius:
+            else:
+                # Floor should have been set with first iteration
                 raise CurveException(
                     "Start point is too close to the straight track such that "
                     "the required RoC is smaller than the minimum.")
