@@ -13,14 +13,6 @@ from . import curve
 # TODO: Add docstrings.
 # TODO: multi_string_var may be better as a dictionary, but care needs to be taken with EntryM.
 
-instructions = """
-1. Find a point with coordinates ({x0}, {z1}) on the first straight track, and cut it at that point.
-2. Extend an easement curve ending with radius of curvature {roc} in the {cw} direction.
-3. Extend a static curve with radius of curvature and make sure it is at least {l} long.
-4. Find a point on the static curve with rotation {r} {q}, and cut it at that point.
-5. Create another easement curve and straighten it out to join the second track.
-"""
-
 
 def get_text_length(length, font='TkDefaultFont'):
     """ Retrieves the length of a string defined by number of characters
@@ -60,7 +52,7 @@ class App(object):
         self.container.grid(row=0, column=0)
 
         # Calc method select and description
-        self.method = StringVar()
+        self.selected_method = StringVar()
         self.method_heading, self.method_description = None, None
         self.select_method()
         self.show_method_description()
@@ -76,7 +68,7 @@ class App(object):
         self.radius, self.cw = StringVar(), StringVar()
         self.entries = {'1': EntryMethod1, '2': EntryMethod2,
                         '3': EntryMethod3}
-        self.current_entry = self.entries[self.m](self.container, self)
+        self.current_entry = self.entries[self.method](self.container, self)
 
         # Message
         Style().configure("Red.TLabel", foreground="red")
@@ -89,12 +81,12 @@ class App(object):
         self.results()
 
     @property
-    def m(self):
-        return self.method.get()
+    def method(self):
+        return self.selected_method.get()
 
-    @m.setter
-    def m(self):
-        raise AttributeError("Can't set m property manually.")
+    @method.setter
+    def method(self):
+        raise AttributeError("Can't set method property manually.")
 
     @property
     def mph(self):
@@ -137,27 +129,27 @@ class App(object):
         Label(sm, text="Select method ").grid(column=0, row=1)
 
         options = ['1', '2', '3']
-        method = OptionMenu(sm, self.method, options[0], *options,
+        method = OptionMenu(sm, self.selected_method, options[0], *options,
                             command=self.refresh_method)
         method.grid(column=1, row=1)
 
     def show_method_description(self):
         self.method_heading = LabelFrame(
-            self.container, text="Method {} description".format(self.m))
+            self.container, text="Method {} description".format(self.method))
         self.method_heading.grid(row=1, sticky=(W, E))
 
         self.method_description = Label(self.method_heading,
-                                        text=self.description[self.m])
+                                        text=self.description[self.method])
         self.method_description.config(
             width=82, wraplength=int(get_text_length(82)), padding="4 0 0 4")
         self.method_description.grid(sticky=(W, E))
 
     def refresh_method(self, event):
-        self.method_heading.config(text="Method {} description".format(self.m))
-        self.method_description.config(text=self.description[self.m])
+        self.method_heading.config(text="Method {} description".format(self.method))
+        self.method_description.config(text=self.description[self.method])
 
         self.current_entry.destroy()
-        self.current_entry = self.entries[self.m](self.container, self)
+        self.current_entry = self.entries[self.method](self.container, self)
 
     def actions(self):
         ac = Frame(self.container, padding="4 0 0 0")
@@ -378,6 +370,8 @@ class EntryMethod1(EntryM):
 
         return track.curve_fit_radius(other=end_track, radius=curve_radius,
                                       clockwise=clockwise)
+
+# TODO: Would it be possible to merge Method 2 and 3? Just ignore the additional track if it is empty.
 
 
 class EntryMethod2(EntryM):
