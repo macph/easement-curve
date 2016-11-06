@@ -35,3 +35,7 @@ Unzip the source code into a folder. Navigate to that folder in command prompt a
 pyinstaller ec_build.spec
 ```
 The `.spec` file is an configuration file used by `PyInstaller`. The executable will be created in the `\dist` folder.
+
+## Usage
+
+For more details about how to get track coordinates and implementing them, see the guide.
