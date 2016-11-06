@@ -38,4 +38,4 @@ The `.spec` file is an configuration file used by `PyInstaller`. The executable 
 
 ## Usage
 
-For more details about how to get track coordinates and implementing them, see the guide.
+For more details about how to get track coordinates and implementing them, see the [guide](docs/guide.md). If you are interested in the mathematics behind the easement curves in TS2016, take a look at the [summary PDF](docs/ec_summary.pdf).
