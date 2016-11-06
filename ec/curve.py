@@ -32,7 +32,7 @@ class TrackCoord(object):
     """
 
     def __init__(self, pos_x, pos_z, rotation, quad, curvature=None,
-                 org_curvature=None, org_length=None):
+                 org_curvature=None, org_length=None, org_type=None):
         # Properties only
         self._bearing = None
         self._curvature = None
@@ -44,6 +44,7 @@ class TrackCoord(object):
         self.curvature = curvature
         self.org_length = org_length
         self.org_curvature = org_curvature
+        self.org_type = org_type
 
         # Check if position values are valid
         try:
@@ -234,22 +235,10 @@ class TrackSection(object):
         except AttributeError as err:
             raise AttributeError("TrackCoord object required.") from err
 
-    @property
     def factor(self):
         """ Normalisation factor as used in the Fresnel integrals. """
         return (self.speed_tolerance / 200) ** 3 \
             * self.n_length * self.n_radius
-
-    @factor.setter
-    def factor(self, value):
-        raise AttributeError("The normalisation factor can only be set via"
-                             "its inputs.")
-
-    def check_clockwise(self):
-        """ Checks if clockwise is set; AttributeError is raised if not."""
-        if self.clockwise is None:
-            raise AttributeError("The clockwise attribute has not been set"
-                                 "yet.")
 
     def get_fresnel(self, length):
         """ Calculates the polynomials for the easement curves, which are
@@ -258,8 +247,11 @@ class TrackSection(object):
             factor a, and then the overall result is divided by a.
             z-axis: C(L) with 2 terms; x-axis: S(L) with 1 term
         """
-        self.check_clockwise()
-        a, t = 1 / math.sqrt(2*self.factor), length
+        if self.clockwise is None:
+            raise AttributeError("The clockwise attribute has not been set"
+                                 "yet.")
+
+        a, t = 1 / math.sqrt(2*self.factor()), length
         x, z = a**2*t**3 / 3, t - a**4*t**5 / 10
 
         return (-x, z) if not self.clockwise else (x, z)
@@ -269,8 +261,11 @@ class TrackSection(object):
             from the origin. The angle is between the curve at that particular
             point and the z-axis, and is in radians.
         """
-        self.check_clockwise()
-        a, t = 1 / math.sqrt(2 * self.factor), length
+        if self.clockwise is None:
+            raise AttributeError("The clockwise attribute has not been set"
+                                 "yet.")
+
+        a, t = 1 / math.sqrt(2 * self.factor()), length
         # Derivatives of the polynomials from get_fresnel()
         xp, zp = a**2*t**2, 1 - a**4*t**4 / 2
 
@@ -281,15 +276,18 @@ class TrackSection(object):
             from the origin. It is the inverse of the radius of curvature.
             Calculates curvature by using the normalisation factor.
         """
-        self.check_clockwise()
-        curvature = length/self.factor
+        if self.clockwise is None:
+            raise AttributeError("The clockwise attribute has not been set"
+                                 "yet.")
+
+        curvature = length / self.factor()
         return -curvature if self.clockwise else curvature
 
     def get_length(self, curvature):
         """ Uses the normalisation factor to find the length of easement curve
             starting with zero curvature and ending with a set curvature.
         """
-        return self.factor * abs(curvature)
+        return self.factor() * abs(curvature)
 
     def get_static_radius(self, add, apply_result=True):
         """ Finds the radius of curvature for a static curve from a pair of
@@ -391,7 +389,8 @@ class TrackSection(object):
 
         return TrackCoord(pos_x=tx, pos_z=tz, rotation=ry, quad=Q.NONE,
                           curvature=end_curv, org_length=curve_length,
-                          org_curvature=self.start.curvature)
+                          org_curvature=self.start.curvature,
+                          org_type='easement')
 
     def static_curve(self, angle_diff):
         """ Creates a static (no change in curvature) track section based
@@ -419,7 +418,8 @@ class TrackSection(object):
 
         return TrackCoord(pos_x=tx, pos_z=tz, rotation=ry, quad=Q.NONE,
                           curvature=self.start.curvature, org_length=length,
-                          org_curvature=self.start.curvature)
+                          org_curvature=self.start.curvature,
+                          org_type='static')
 
     def __repr__(self):
         return '{tc}; min radius: {m}; speed: {s}; clockwise: {cl}'.format(
