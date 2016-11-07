@@ -13,6 +13,7 @@ from . import curve
 # TODO: Add docstrings.
 # TODO: multi_string_var may be better as a dictionary, but care needs to be taken with EntryM.
 # TODO: Create an About dialog box.
+# TODO: Slim down the columns to make it fit.
 
 
 def get_text_length(length, font='TkDefaultFont'):
@@ -76,9 +77,12 @@ class App(object):
         self.actions()
         self.message()
 
-        # 2 tabs: results table and instructions
+        # Results table
         self.result, self.instruction = None, None
         self.results()
+
+        # Bindings
+        parent.bind('<Return>', self.calculate)
 
     @property
     def method(self):
@@ -124,14 +128,18 @@ class App(object):
 
     def select_method(self):
         sm = Frame(self.container)
-        sm.grid(column=0, row=0, sticky=W)
+        sm.grid(column=0, row=0, sticky=(W, E))
+        sm.columnconfigure(2, weight=1)
 
-        Label(sm, text="Select method ").grid(column=0, row=1)
+        Label(sm, text="Select method ").grid(column=0, row=0)
 
         options = ['1', '2']
         method = OptionMenu(sm, self.selected_method, options[0], *options,
                             command=self.refresh_method)
-        method.grid(column=1, row=1)
+        method.grid(column=1, row=0)
+
+        about = Button(sm, text="About")
+        about.grid(column=3, row=0, sticky=E)
 
     def show_method_description(self):
         self.method_heading = LabelFrame(
@@ -152,27 +160,21 @@ class App(object):
         self.current_entry = self.entries[self.method](self.container, self)
 
     def actions(self):
-        ac0 = Frame(self.container, padding="4 0 0 0")
-        ac0.grid(column=1, row=0, rowspan=3, sticky=N)
-        ac0.rowconfigure(0, pad=4)
 
-        about = Button(ac0, text="About")
-        about.grid(column=0, row=0, sticky=E)
-
-        ac1 = Frame(self.container, padding="4 0 0 0")
-        ac1.grid(column=1, row=3, sticky=S)
-        ac1.rowconfigure(0, pad=4)
-
-        clear = Button(ac1, text="Clear", command=self.clear)
-        clear.grid(column=0, row=0, sticky=E)
+        ac1 = Frame(self.container, padding="4 4 0 4")
+        ac1.grid(column=0, row=4, sticky=E)
+        ac1.columnconfigure(1, pad=4)
 
         calc = Button(ac1, text="Calculate", command=self.calculate)
-        calc.grid(column=0, row=1, sticky=E)
+        calc.grid(column=0, row=0, sticky=E)
+
+        clear = Button(ac1, text="Clear", command=self.clear)
+        clear.grid(column=1, row=0, sticky=E)
 
     def message(self):
-        self.msg = Label(self.container, text='', padding="4 0 0 4")
-        self.msg.config(width=92, wraplength=int(get_text_length(92)))
-        self.msg.grid(column=0, row=4, columnspan=2, sticky=(W, E))
+        self.msg = Label(self.container, text='', padding="0 0 0 4")
+        self.msg.config(width=82, wraplength=int(get_text_length(82)))
+        self.msg.grid(column=0, row=5, columnspan=2, sticky=(W, E))
 
     def refresh_message(self, message, colour='black'):
         if colour == 'red':
@@ -182,16 +184,17 @@ class App(object):
 
     def results(self):
         self.result = Result(self.container)
-        self.result.grid(column=0, row=5, sticky=(W, E), columnspan=2)
+        self.result.grid(column=0, row=6, sticky=(W, E))
 
     def clear(self):
+        self.msg.config(text='')
         self.radius.set('')
         self.cw.set('N/A')
         for line in [self.line0, self.line1, self.line2]:
             for entry in line:
                 entry.set('')
 
-    def calculate(self):
+    def calculate(self, event=None):
         if self.dim.get() == 'mph':
             self.mph = self.speed.get()
         else:
@@ -419,16 +422,17 @@ class Result(Frame):
 
     def create_table(self):
         tv = Treeview(self, height=5)
+        Style().configure('Treeview', rowheight=get_text_length(3.5))
         columns = ('length', 'roc', 'pos_x', 'pos_z', 'rotation', 'quad')
         columns_d = {'length': ('Length', 'e', 10),
-                     'roc': ('Radius of curvature', 'w', 24),
-                     'pos_x': ('Position x', 'e', 12),
-                     'pos_z': ('Position z', 'e', 12),
-                     'rotation': ('Rotation', 'e', 12),
-                     'quad': ('Quad', 'w', 8)}
+                     'roc': ('Radius of curvature', 'w', 22),
+                     'pos_x': ('Position x', 'e', 11),
+                     'pos_z': ('Position z', 'e', 11),
+                     'rotation': ('Rotation', 'e', 10),
+                     'quad': ('Quad', 'w', 7)}
         tv['columns'] = columns
         tv.heading("#0", text='Curve section', anchor='w')
-        tv.column("#0", anchor="w", width=get_text_length(20))
+        tv.column("#0", anchor="w", width=get_text_length(13))
         for col in columns:
             c = columns_d[col]
             tv.heading(col, text=c[0], anchor='w')
