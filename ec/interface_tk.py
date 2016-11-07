@@ -34,13 +34,13 @@ class InterfaceException(Exception):
 class App(object):
 
     description = {
-        '1': ("Takes two straight tracks at different angles, and creates an easement curve "
-              "with set radius of curvature connecting the two tracks."),
-        '2': ("Extends an easement curve onwards from a straight track to join with another "
-              "straight track."),
-        '3': ("Extends an easement curve onwards from a curved track (defined with another "
-              "pair of coordinates to give a more accurate figure) to join with a straight "
-              "track.")
+        '1': ("Takes two straight tracks at different angles, and creates an "
+              "easement curve with set radius of curvature connecting the two "
+              "tracks."),
+        '2': ("Extends an easement curve onwards from a straight track to join"
+              " with another straight track. The optional pair of coordinates "
+              "on the first track is used to define radius of curvature - if "
+              "it is left empty the first track is assumed to be straight.")
     }
 
     def __init__(self, parent):
@@ -66,8 +66,7 @@ class App(object):
         self.line0, self.line1, self.line2 = \
             multi_string_var(), multi_string_var(), multi_string_var()
         self.radius, self.cw = StringVar(), StringVar()
-        self.entries = {'1': EntryMethod1, '2': EntryMethod2,
-                        '3': EntryMethod3}
+        self.entries = {'1': EntryMethod1, '2': EntryMethod2}
         self.current_entry = self.entries[self.method](self.container, self)
 
         # Message
@@ -128,7 +127,7 @@ class App(object):
 
         Label(sm, text="Select method ").grid(column=0, row=1)
 
-        options = ['1', '2', '3']
+        options = ['1', '2']
         method = OptionMenu(sm, self.selected_method, options[0], *options,
                             command=self.refresh_method)
         method.grid(column=1, row=1)
@@ -371,38 +370,15 @@ class EntryMethod1(EntryM):
         return track.curve_fit_radius(other=end_track, radius=curve_radius,
                                       clockwise=clockwise)
 
-# TODO: Would it be possible to merge Method 2 and 3? Just ignore the additional track if it is empty.
-
 
 class EntryMethod2(EntryM):
-
-    def get_table(self):
-        self.start_label("Starting point on straight track", 0)
-        self.entry_boxes(self.controller.line1, 4, 0)
-        self.end_label("X, Z, R, Q", 0)
-
-        self.start_label("Straight track to join", 1)
-        self.entry_boxes(self.controller.line2, 4, 1)
-        self.end_label("X, Z, R, Q", 1)
-
-        self.start_label("", 2)
-
-    def get_result(self):
-        start_track = self.get_coord(self.controller.line1)
-        end_track = self.get_coord(self.controller.line2)
-
-        track = curve.TrackCurve(curve=start_track, **self.args())
-        return track.curve_fit_point(other=end_track)
-
-
-class EntryMethod3(EntryM):
 
     def get_table(self):
         self.start_label("Starting point on curved track", 0)
         self.entry_boxes(self.controller.line1, 4, 0)
         self.end_label("X, Z, R, Q", 0)
 
-        self.start_label("Additional point on curve", 1)
+        self.start_label("Add. point on starting track", 1)
         self.entry_boxes(self.controller.line0, 2, 1)
         self.end_label("X, Z", 1)
         self.controller.line0[2].set('0')
@@ -414,11 +390,16 @@ class EntryMethod3(EntryM):
 
     def get_result(self):
         start_track = self.get_coord(self.controller.line1)
-        pre_track = self.get_coord(self.controller.line0)
         end_track = self.get_coord(self.controller.line2)
 
         track = curve.TrackCurve(curve=start_track, **self.args())
-        return track.curve_fit_point(other=end_track, add_point=pre_track)
+
+        # Empty fields - ignore extra point and assume first track straight
+        if all(k.get() == '' for k in self.controller.line0):
+            return track.curve_fit_point(other=end_track)
+        else:
+            pre_track = self.get_coord(self.controller.line0)
+            return track.curve_fit_point(other=end_track, add_point=pre_track)
 
 
 class Result(Frame):

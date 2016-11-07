@@ -189,7 +189,7 @@ class LinearEquation(object):
         u1, v1, b1 = self.u, self.v, self.b
         u2, v2, b2 = other.u, other.v, other.b
 
-        # Can't use cot and tan at specific angles, so cover with alternative formulae
+        # Can't use either cot and tan at specific angles, so cover with alternative formulae
         if b1 % (math.pi/2) == 0 and b2 % (math.pi/2) == 0:
             # Since can't be parallel, must be perpendicular; can just use coords
             x, y = (u1, v2) if b1 in [0, math.pi] else (u2, v1)
