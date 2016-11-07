@@ -374,15 +374,15 @@ class EntryMethod1(EntryM):
 class EntryMethod2(EntryM):
 
     def get_table(self):
-        self.start_label("Starting point on curved track", 0)
-        self.entry_boxes(self.controller.line1, 4, 0)
-        self.end_label("X, Z, R, Q", 0)
-
-        self.start_label("Add. point on starting track", 1)
-        self.entry_boxes(self.controller.line0, 2, 1)
-        self.end_label("X, Z", 1)
+        self.start_label("Add. point on starting track", 0)
+        self.entry_boxes(self.controller.line0, 2, 0)
+        self.end_label("X, Z", 0)
         self.controller.line0[2].set('0')
         self.controller.line0[3].set('NE')
+
+        self.start_label("Starting point on curved track", 1)
+        self.entry_boxes(self.controller.line1, 4, 1)
+        self.end_label("X, Z, R, Q", 1)
 
         self.start_label("Straight track to join", 2)
         self.entry_boxes(self.controller.line2, 4, 2)
