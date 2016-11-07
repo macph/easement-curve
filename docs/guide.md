@@ -1,55 +1,49 @@
 # Easement curve guide
-## Speed tolerance
 
-## How to find the coordinates
-Every object within a Train Simulator route, including tracks and lofts, has a set of coordinates for translation, rotation and scale. They can be discovered by double clicking on the objects, which brings up a dialog on the right.
+- Introduction
+- Joining two straight tracks with a specific radius of curvature
+- Extending a track to join another straight track
 
-The same goes for tracks and lofts too, but you can double click on any point along the loft to get its coordinates. If you hover the cursor just outside the end of the loft's bounding box, you can get the coordinates right at the end of the loft.
+## Introduction
 
-The transform dialog contains entry fields for translation, rotation and scale in the `x`, `y` and `z` axes.
+Starting up the GUI gives you this:
 
-### Position values and the grid
-The `x` and `z` axes are horiztonal and are aligned towards the North and the West respectively. They are usually relative to the grid points covering a TS2016 route, which is made up of 1,024 m x 1,024 m squares. You can tell which grid square you are in by look at the far bottom left, which shows something like `+00000000-00000001`.
+There are two methods of calculating easement curves - you can select them with the 'Select method' menu. Below is a short description of what each method does.
 
-You can also make grids visible by selecting this option on the left rollout:
+Then there is the speed tolerance and minimum radius. The speed tolerance determines how long the easement curves are, and it scales linearlly - if you double the speed tolerance the length between specific radii of curvature is also doubled. The minimum radius of curvature sets an upper limit on the curvature.
 
-When dealing with tracks that are far apart, you will need to bear in mind that the tracks can be positioned relative to different grid points, even if they aren't inside those grid squares. For instance, if you know that one track is near a grid square next to another south where another track is, and their coordinates don't match up with the distances shown, you would need to add 1,024 to the `z`-axis coordiante for the first track.
+The `Clear` button clears away all the fields in the 'Curve data' section. The `Calculate` button does what it says on the tin.
 
-### Rotation values
-Tracks are aligned according to their rotation values in the vertical `y`-axis. However, there are two issues with `y`-axis rotation values. Firstly, the values shown on the rollout dialog is always within the -90 to 90 range, which is half that required for a full rotation of 360 degrees. Secondly, the rotation value is relative to the direction the track was laid in, which isn't always the same as the direction you want to lay new track in. As a result, an extra coordinate is needed: the bearing quadrants `NE`, `SE`, `SW` and `NW`. 
+At the bottom is the table which gives you the easement curve coordinates you need to recreate the curve in Train Simulator.
 
-The easiest way to find which quadrant the track is aligned towards is to pin the compass rollout dialog at the top, and look down the track. If the compass shows it's between N and E, or between the bearing values 0 and 90, the quadrant is `NE`. If it's between 90 and 180, it would be `SE`, and so on.
+Let's get started with some examples of joining up tracks with easement curves.
 
-| Bearing    | `y`-axis rotation | Quadrant |
-| ---------- | ----------------- | -------- |
-| 0 to 90    | 0 to 90           | `NE`     |
-| 90 to 180  | 90 to 0           | `SE`     |
-| 180 to 270 | 0 to -90          | `SW`     |
-| 270 to 360 | -90 to 0          | `NW`     |
+## Joining two straight tracks with a specific radius of curvature
 
-## Method
-There are different ways of defining the easement curves you want to join the tracks with, and I've split them up into different methods. You can select different methods by picking an option from the 'Select Method' menu.
+Suppose we have two straight tracks, and we want to create a section with easement curves of radius of curvature 700 m to join them. The track rule we're using has a speed tolerance of 100 km/h and minimum radius of curvature 600 m.
 
-### Method 1: set radius of curvature between two straight tracks
-### Method 2: set static curve length between two straight tracks
-### Method 3: extend track to join another
+Since we need a specific radius of curvature and it doesn't matter where the easement curve starts, we select method 1.
 
-## Implementing the curve
-Entering the coordinates and clicking `Calculate` will give you a table with different sections of the curve and their coordinates. There are many different ways to implement the curve in TS2016 based on these coordinates, and one is outlined below with an example easement curve section.
+We double click on the first track - it doesn't matter where exactly. The coordinates rolls out.
 
-| Curve section    | Length | Radius of curvature  | Position `x` | Position `z` | Rotation | Quad |
-| ---------------- | ------:| -------------------- | ------------:| ------------:| --------:| ---- |
-| Start point      |        | Straight             | 231.643      | 47.282       | 48.882   | `NE` |
-| Easement curve 1 | 86.0   | Straight to 600.0 CW | 297.726      | 102.241      | 52.990   | `NE` |
-| Static curve     | 192.2  | 600.0 CW             | 466.933      | 191.584      | 71.341   | `NE` |
-| Easement curve 2 | 86.0   | 600.0 CW to straight | 594.587      | 215.159      | 75.449   | `NE` |
+We want the `x` and `z` coordinates and the `y`-axis rotation, and enter them.
 
-- If methods 1 or 2 are used, double click on the first straight track to find the exact point `(231.643, 47.282)` where the easement curve starts. Cut the track at that point and delete the extranenous section.
-- Create an easement curve from the start point to radius of curvature `600.0` clockwise.
-- Create a curve of constant curvature `600.0` (static curve). To make sure it ends in the right place, the static curve is longer than it needs to be.
-- Find the point on the static curve with the specific rotation value `71.341 NE` where it ends. Cut the track and delete the extranenous section.
-- Finally, extend another easement curve and straighten it out. If the track sections are in the correct places, it should automatically join with the second track.
+We also need the quadrant - the `y`-axis rotation values does not cover the full 360 degrees range. Move the camera down to the track and look down the track in the direction you want to build the curve in. The compass says it's about `000` between `N` and `E`, therefore the quadrant is `NE`. We enter that in.
 
-## Troubleshooting
+We do the same thing for the second track - again, it doesn't matter where exactly on the track.
 
-Pictures too!
+Finally, we enter the radius of curvature `700` m. The direction can be left as `N/A`, as we're only interested in the shortest curve. Clicking `Calculate` gives us the results.
+
+Now, we need to recreate the curve in Train Simulator. The start point is at `(000, 000)`, so we find that point on the first track by double clicking it until the coordinates rollout gives us the correct values.
+
+Looking straight down at the gizmo, we move the cursor to the gizmo's centre and use the cut tool to split the track. The extranenous section is deleted.
+
+We extend an easement curve from that point to radius of curvature `700.0`, and create another curve of constant radius of curvature, making sure it is longer than needed (so we can cut it in the right place).
+
+We use the alignment of the static curve to find the end point of the static curve - just keep double clicking until the coordinates show `0.000` for the `y`-axis rotation. We cut the curve at that point, as before.
+
+Finally, we extend another easement curve, straightening it out to join the second straight track. Assuming the coordinates are correct, it should weld without any problems!
+
+## Extending a track to join another straight track
+
+## Other ways of implementing the curve data
