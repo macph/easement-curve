@@ -12,6 +12,7 @@ from . import curve
 # TODO: Sort out the text.
 # TODO: Add docstrings.
 # TODO: multi_string_var may be better as a dictionary, but care needs to be taken with EntryM.
+# TODO: Create an About dialog box.
 
 
 def get_text_length(length, font='TkDefaultFont'):
@@ -151,14 +152,21 @@ class App(object):
         self.current_entry = self.entries[self.method](self.container, self)
 
     def actions(self):
-        ac = Frame(self.container, padding="4 0 0 0")
-        ac.grid(column=1, row=3, sticky=S)
-        ac.rowconfigure(0, pad=4)
+        ac0 = Frame(self.container, padding="4 0 0 0")
+        ac0.grid(column=1, row=0, rowspan=3, sticky=N)
+        ac0.rowconfigure(0, pad=4)
 
-        clear = Button(ac, text="Clear", command=self.clear)
+        about = Button(ac0, text="About")
+        about.grid(column=0, row=0, sticky=E)
+
+        ac1 = Frame(self.container, padding="4 0 0 0")
+        ac1.grid(column=1, row=3, sticky=S)
+        ac1.rowconfigure(0, pad=4)
+
+        clear = Button(ac1, text="Clear", command=self.clear)
         clear.grid(column=0, row=0, sticky=E)
 
-        calc = Button(ac, text="Calculate", command=self.calculate)
+        calc = Button(ac1, text="Calculate", command=self.calculate)
         calc.grid(column=0, row=1, sticky=E)
 
     def message(self):
