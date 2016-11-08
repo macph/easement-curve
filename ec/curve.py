@@ -550,7 +550,7 @@ class TrackCurve(TrackSection):
             # Angle diff from two easement curves bigger than angle between
             # the two straight tracks; can't fit them in
             raise CurveException(
-                "The easement curves are too long to fit within the curve;\n"
+                "The easement curves are too long to fit within the curve; "
                 "consider increasing the radius of curvature.")
 
         # Constructs the 3 sections of curve

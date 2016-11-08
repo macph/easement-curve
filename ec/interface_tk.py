@@ -14,6 +14,7 @@ from . import curve
 # TODO: multi_string_var may be better as a dictionary, but care needs to be taken with EntryM.
 # TODO: Create an About dialog box.
 # TODO: Slim down the columns to make it fit.
+# TODO: Consider changing TreeView to a grid of Text widgets.
 
 
 def get_text_length(length, font='TkDefaultFont'):
@@ -34,6 +35,7 @@ class InterfaceException(Exception):
 
 
 class App(object):
+    """ Main application window. """
 
     description = {
         '1': ("Takes two straight tracks at different angles, and creates an "
@@ -62,7 +64,7 @@ class App(object):
         # Enter speed tolerance (in mph or km/h) and minimum radius
         self.speed, self.dim = DoubleVar(), StringVar()
         self.min_radius = IntVar()
-        self.select_speed_radius()
+        self.select_sr(row=2)
 
         # Create lists of stringvars and grid for entering data
         self.line0, self.line1, self.line2 = \
@@ -86,6 +88,7 @@ class App(object):
 
     @property
     def method(self):
+        """ Retrieves method selection. """
         return self.selected_method.get()
 
     @method.setter
@@ -94,6 +97,7 @@ class App(object):
 
     @property
     def mph(self):
+        """ Speed tolerance in mph. """
         return self._kph / 1.609344
 
     @mph.setter
@@ -102,13 +106,16 @@ class App(object):
 
     @property
     def kph(self):
+        """ Speed tolerance in kph. """
         return self._kph
 
     @kph.setter
     def kph(self, value):
         self._kph = value
 
-    def select_speed_radius(self):
+    def select_sr(self, row):
+        """ LabelFrame widget with speed tolerance and minimum radius entries.
+        """
         st = LabelFrame(self.container, text="Curve setup", padding="0 0 0 8")
         st.grid(column=0, row=2, sticky=(W, E))
 
@@ -126,9 +133,10 @@ class App(object):
         minimum_radius.grid(column=4, row=0)
         Label(st, text="m", padding="4 0 0 0").grid(column=5, row=0)
 
-    def select_method(self):
         sm = Frame(self.container)
         sm.grid(column=0, row=0, sticky=(W, E))
+    def select_method(self, row):
+        """ Widget for calculation method selection. """
         sm.columnconfigure(2, weight=1)
 
         Label(sm, text="Select method ").grid(column=0, row=0)
@@ -141,7 +149,8 @@ class App(object):
         about = Button(sm, text="About")
         about.grid(column=3, row=0, sticky=E)
 
-    def show_method_description(self):
+    def show_method_description(self, row):
+        """ LabelFrame widget for displaying method description. """
         self.method_heading = LabelFrame(
             self.container, text="Method {} description".format(self.method))
         self.method_heading.grid(row=1, sticky=(W, E))
@@ -153,6 +162,9 @@ class App(object):
         self.method_description.grid(sticky=(W, E))
 
     def refresh_method(self, event):
+        """ Command to refresh method description and data entries depending
+            on which method was selected.
+        """
         self.method_heading.config(text="Method {} description".format(self.method))
         self.method_description.config(text=self.description[self.method])
 
@@ -177,16 +189,20 @@ class App(object):
         self.msg.grid(column=0, row=5, columnspan=2, sticky=(W, E))
 
     def refresh_message(self, message, colour='black'):
+        """ Command to refresh the calculation message. """
         if colour == 'red':
             self.msg.config(text=message, style='Red.TLabel')
         else:
             self.msg.config(text=message, style='TLabel')
 
     def results(self):
+        """ Shows the results table. """
         self.result = Result(self.container)
         self.result.grid(column=0, row=6, sticky=(W, E))
 
     def clear(self):
+        """ Command to clear and reset all entries/selections in data entry.
+        """
         self.msg.config(text='')
         self.radius.set('')
         self.cw.set('N/A')
@@ -195,6 +211,9 @@ class App(object):
                 entry.set('')
 
     def calculate(self, event=None):
+        """ Takes data, calculates the curve geometry and passes results to
+            table.
+        """
         if self.dim.get() == 'mph':
             self.mph = self.speed.get()
         else:
@@ -227,6 +246,9 @@ class App(object):
 
     @staticmethod
     def display_data(result):
+        """ Formats the results data to make them readable and gives correct
+            decimal places.
+        """
         data = {}
         labels = {'start': 'Start point', 'ec1': 'Easement curve 1',
                   'static': 'Static curve', 'ec2': 'Easement curve 2'}
@@ -278,6 +300,7 @@ class App(object):
 
 
 class EntryM(LabelFrame, metaclass=ABCMeta):
+    """ Common class for entry data table. Must be subclassed. """
 
     def __init__(self, parent, controller):
         super(EntryM, self).__init__(parent)
@@ -328,10 +351,12 @@ class EntryM(LabelFrame, metaclass=ABCMeta):
 
     @abstractmethod
     def get_table(self):
+        """ Creates grid of entries and labels. """
         pass
 
     @abstractmethod
     def get_result(self):
+        """ Takes entries and calculates the result. """
         pass
 
     def start_label(self, text, row, column=0):
