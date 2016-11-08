@@ -49,7 +49,6 @@ Looking straight down at the gizmo, we move the cursor to the gizmo's centre and
 We extend an easement curve from that point to radius of curvature `700.0`, and create another curve of constant radius of curvature, making sure it is longer than needed (so we can cut it in the right place).
 
 ![New easement curve](images/guide_06.jpg)
-
 ![Extending curve](images/guide_07.jpg)
 
 We use the alignment of the static curve to find the end point of the static curve - just keep double clicking until the coordinates show `0.000` for the `y`-axis rotation. We cut the curve at that point, as before.
@@ -59,7 +58,6 @@ We use the alignment of the static curve to find the end point of the static cur
 Finally, we extend another easement curve, straightening it out to join the second straight track. Assuming the coordinates are correct, it should weld without any problems!
 
 ![Last section](images/guide_09.jpg)
-
 ![Done](images/guide_10.jpg)
 
 ## Extending a track to join another straight track
