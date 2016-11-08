@@ -19,28 +19,30 @@ Let's get started with some examples of joining up tracks with easement curves.
 ## Joining two straight tracks with a specific radius of curvature
 
 Suppose we have two straight tracks, and we want to create a section with easement curves of radius of curvature 700 m to join them. The track rule we're using has a speed tolerance of 100 km/h and minimum radius of curvature 600 m.
-
+![Straight tracks](images/guide_01.jpg)
 Since we need a specific radius of curvature and it doesn't matter where the easement curve starts, we select method 1.
 
 We double click on the first track - it doesn't matter where exactly. The coordinates rolls out.
-
+![Coordinates rollout](images/guide_02.jpg)
 We want the `x` and `z` coordinates and the `y`-axis rotation, and enter them.
 
 We also need the quadrant - the `y`-axis rotation values does not cover the full 360 degrees range. Move the camera down to the track and look down the track in the direction you want to build the curve in. The compass says it's about `000` between `N` and `E`, therefore the quadrant is `NE`. We enter that in.
-
+![Looking down track](images/guide_03.jpg)
 We do the same thing for the second track - again, it doesn't matter where exactly on the track.
-
+![Second track](images/guide_04.jpg)
 Finally, we enter the radius of curvature `700` m. The direction can be left as `N/A`, as we're only interested in the shortest curve. Clicking `Calculate` gives us the results.
 
 Now, we need to recreate the curve in Train Simulator. The start point is at `(000, 000)`, so we find that point on the first track by double clicking it until the coordinates rollout gives us the correct values.
-
 Looking straight down at the gizmo, we move the cursor to the gizmo's centre and use the cut tool to split the track. The extranenous section is deleted.
-
+![Cutting track](images/guide_05.jpg)
 We extend an easement curve from that point to radius of curvature `700.0`, and create another curve of constant radius of curvature, making sure it is longer than needed (so we can cut it in the right place).
-
+![New easement curve](images/guide_06.jpg)
+![Extending curve](images/guide_07.jpg)
 We use the alignment of the static curve to find the end point of the static curve - just keep double clicking until the coordinates show `0.000` for the `y`-axis rotation. We cut the curve at that point, as before.
-
+![Coordinate found](images/guide_08.jpg)
 Finally, we extend another easement curve, straightening it out to join the second straight track. Assuming the coordinates are correct, it should weld without any problems!
+![Last section](images/guide_09.jpg)
+![Done](images/guide_10.jpg)
 
 ## Extending a track to join another straight track
 
