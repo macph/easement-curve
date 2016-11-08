@@ -11,9 +11,7 @@ from . import curve
 # TODO: Clean up the code and test??
 # TODO: Sort out the text.
 # TODO: Add docstrings.
-# TODO: multi_string_var may be better as a dictionary, but care needs to be taken with EntryM.
 # TODO: Create an About dialog box.
-# TODO: Slim down the columns to make it fit.
 # TODO: Consider changing TreeView to a grid of Text widgets.
 
 
@@ -58,8 +56,8 @@ class App(object):
         # Calc method select and description
         self.selected_method = StringVar()
         self.method_heading, self.method_description = None, None
-        self.select_method()
-        self.show_method_description()
+        self.select_method(row=0)
+        self.show_method_description(row=1)
 
         # Enter speed tolerance (in mph or km/h) and minimum radius
         self.speed, self.dim = DoubleVar(), StringVar()
@@ -71,17 +69,18 @@ class App(object):
             multi_string_var(), multi_string_var(), multi_string_var()
         self.radius, self.cw = StringVar(), StringVar()
         self.entries = {'1': EntryMethod1, '2': EntryMethod2}
-        self.current_entry = self.entries[self.method](self.container, self)
+        self.row = 3
+        self.current_entry = self.entries[self.method](
+            self.container, self, row=self.row)
 
         # Message
         Style().configure("Red.TLabel", foreground="red")
         self.msg = None
-        self.actions()
-        self.message()
+        self.message_actions(row=4)
 
         # Results table
         self.result, self.instruction = None, None
-        self.results()
+        self.results(row=5)
 
         # Bindings
         parent.bind('<Return>', self.calculate)
@@ -117,7 +116,7 @@ class App(object):
         """ LabelFrame widget with speed tolerance and minimum radius entries.
         """
         st = LabelFrame(self.container, text="Curve setup", padding="0 0 0 8")
-        st.grid(column=0, row=2, sticky=(W, E))
+        st.grid(column=0, row=row, sticky=(W, E))
 
         options = ['mph', 'km/h']
         Label(st, text="Speed tolerance ",
@@ -133,10 +132,10 @@ class App(object):
         minimum_radius.grid(column=4, row=0)
         Label(st, text="m", padding="4 0 0 0").grid(column=5, row=0)
 
-        sm = Frame(self.container)
-        sm.grid(column=0, row=0, sticky=(W, E))
     def select_method(self, row):
         """ Widget for calculation method selection. """
+        sm = Frame(self.container, padding="6 0 0 0")
+        sm.grid(column=0, row=row, sticky=(W, E))
         sm.columnconfigure(2, weight=1)
 
         Label(sm, text="Select method ").grid(column=0, row=0)
@@ -153,7 +152,7 @@ class App(object):
         """ LabelFrame widget for displaying method description. """
         self.method_heading = LabelFrame(
             self.container, text="Method {} description".format(self.method))
-        self.method_heading.grid(row=1, sticky=(W, E))
+        self.method_heading.grid(row=row, sticky=(W, E))
 
         self.method_description = Label(self.method_heading,
                                         text=self.description[self.method])
@@ -169,24 +168,27 @@ class App(object):
         self.method_description.config(text=self.description[self.method])
 
         self.current_entry.destroy()
-        self.current_entry = self.entries[self.method](self.container, self)
+        self.current_entry = self.entries[self.method](
+            self.container, self, self.row)
 
-    def actions(self):
+    def message_actions(self, row):
+        """ Row for message (all OK or errors in calculations) and Calculate/
+            Clear buttons.
+        """
+        ma = Frame(self.container, padding="0 4 0 4")
+        ma.grid(column=0, row=row, sticky=(W, E))
+        ma.columnconfigure(3, pad=4)
+        ma.columnconfigure(1, weight=1)
 
-        ac1 = Frame(self.container, padding="4 4 0 4")
-        ac1.grid(column=0, row=4, sticky=E)
-        ac1.columnconfigure(1, pad=4)
+        self.msg = Label(ma, text='')
+        self.msg.config(width=56, wraplength=int(get_text_length(56)))
+        self.msg.grid(column=0, row=0, sticky=W)
 
-        calc = Button(ac1, text="Calculate", command=self.calculate)
-        calc.grid(column=0, row=0, sticky=E)
+        calc = Button(ma, text="Calculate", command=self.calculate)
+        calc.grid(column=2, row=0, sticky=(N, E))
 
-        clear = Button(ac1, text="Clear", command=self.clear)
-        clear.grid(column=1, row=0, sticky=E)
-
-    def message(self):
-        self.msg = Label(self.container, text='', padding="0 0 0 4")
-        self.msg.config(width=82, wraplength=int(get_text_length(82)))
-        self.msg.grid(column=0, row=5, columnspan=2, sticky=(W, E))
+        clear = Button(ma, text="Clear", command=self.clear)
+        clear.grid(column=3, row=0, sticky=(N, E))
 
     def refresh_message(self, message, colour='black'):
         """ Command to refresh the calculation message. """
@@ -195,10 +197,10 @@ class App(object):
         else:
             self.msg.config(text=message, style='TLabel')
 
-    def results(self):
+    def results(self, row):
         """ Shows the results table. """
         self.result = Result(self.container)
-        self.result.grid(column=0, row=6, sticky=(W, E))
+        self.result.grid(column=0, row=row, sticky=(W, E))
 
     def clear(self):
         """ Command to clear and reset all entries/selections in data entry.
@@ -239,21 +241,22 @@ class App(object):
         else:
             self.refresh_message('All OK.')
 
-        order = ("Start point", "Easement curve 1", "Static curve",
-                 "Easement curve 2")
+        order = ['start', 'ec1', 'static', 'ec2']
+        labels = ("Start point", "Easement 1", "Static curve", "Easement 2")
         self.result.clear_table()
-        self.result.load_table(order, self.display_data(result))
+        dict_table = self.display_data(result, order, labels)
+        self.result.load_table(order, dict_table)
 
     @staticmethod
-    def display_data(result):
+    def display_data(result, order, labels):
         """ Formats the results data to make them readable and gives correct
             decimal places.
         """
         data = {}
-        labels = {'start': 'Start point', 'ec1': 'Easement curve 1',
-                  'static': 'Static curve', 'ec2': 'Easement curve 2'}
-        for section in ['start', 'ec1', 'static', 'ec2']:
-            ts = result[section]
+        dict_labels = dict(zip(order, labels))
+
+        for sec in order:
+            ts = result[sec]
             if ts is None:
                 continue
 
@@ -281,6 +284,7 @@ class App(object):
                         "Something went wrong here - org curvature {0} and "
                         "curvature {1}".format(ts.org_curvature, ts.curvature))
 
+            section_name = dict_labels[sec]
             length = '{:.1f}'.format(ts.org_length) if \
                 ts.org_length is not None else ''
 
@@ -293,8 +297,8 @@ class App(object):
             elif rotation == '90.000':
                 quad = 'W' if quad in ['NW', 'SW'] else 'E'
 
-            data[labels[section]] = (length, roc_text, pos_x, pos_z,
-                                     rotation, quad)
+            data[sec] = (section_name, length, roc_text,
+                         pos_x, pos_z, rotation, quad)
 
         return data
 
@@ -302,10 +306,10 @@ class App(object):
 class EntryM(LabelFrame, metaclass=ABCMeta):
     """ Common class for entry data table. Must be subclassed. """
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, row):
         super(EntryM, self).__init__(parent)
         self.config(text="Curve data", padding="0 0 0 10")
-        self.grid(row=3, column=0, sticky=(N, W, E))
+        self.grid(row=row, column=0, sticky=(N, W, E))
 
         for i in range(5):
             self.grid_columnconfigure(i, pad=4)
@@ -448,16 +452,21 @@ class Result(Frame):
     def create_table(self):
         tv = Treeview(self, height=5)
         Style().configure('Treeview', rowheight=get_text_length(3.5))
-        columns = ('length', 'roc', 'pos_x', 'pos_z', 'rotation', 'quad')
-        columns_d = {'length': ('Length', 'e', 10),
+
+        columns = ('section', 'length', 'roc', 'pos_x',
+                   'pos_z', 'rotation', 'quad')
+        columns_d = {'section': ('Curve section', 'w', 14),
+                     'length': ('Length', 'e', 9),
                      'roc': ('Radius of curvature', 'w', 22),
                      'pos_x': ('Position x', 'e', 11),
                      'pos_z': ('Position z', 'e', 11),
                      'rotation': ('Rotation', 'e', 10),
                      'quad': ('Quad', 'w', 7)}
+
         tv['columns'] = columns
-        tv.heading("#0", text='Curve section', anchor='w')
-        tv.column("#0", anchor="w", width=get_text_length(13))
+        # Hides the first column
+        tv['show'] = 'headings'
+
         for col in columns:
             c = columns_d[col]
             tv.heading(col, text=c[0], anchor='w')
@@ -469,8 +478,7 @@ class Result(Frame):
     def load_table(self, order, data):
         for section in order:
             if data[section] is not None:
-                self.treeview.insert('', 'end', text=section,
-                                     values=data[section])
+                self.treeview.insert('', 'end', text='', values=data[section])
 
     def clear_table(self):
         self.treeview.delete(*self.treeview.get_children())
