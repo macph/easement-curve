@@ -9,7 +9,6 @@ from . import __version__
 from . import curve
 
 # TODO: Fix any problems and add all text.
-# TODO: Fix the print_curve_data() method to accept list of TrackCoords, as in interface_tk.py.
 
 
 help_text = """
@@ -53,8 +52,7 @@ class Interface(object):
         # Use regex for this! And everything else.
         try:
             find_speed = self.re_speed_radius.match(value)
-            speed_value = find_speed.group(1)
-            speed_dim = find_speed.group(2)
+            speed_value, speed_dim = find_speed.group(1), find_speed.group(2)
             self.minimum_radius = float(find_speed.group(3))
         except ValueError:
             raise InterfaceException("Minimum radius must be a positive "
@@ -257,6 +255,7 @@ class Interface(object):
 
         return curve.TrackCoord(**dict_coord)
 
+    # noinspection PyTypeChecker
     @staticmethod
     def print_curve_data(curve_data):
         """ Prints on screen the data obtained from creating a curve with
@@ -268,13 +267,15 @@ class Interface(object):
             'roc': 'Radius of curvature', 'position': 'Position (x, z)',
             'bearing': 'Bearing', 'rotation': 'Rotation'
         }
-        labels = {'start': 'Start point', 'ec1': 'Easement curve 1',
-                  'static': 'Static curve', 'ec2': 'Easement curve 2'}
 
-        table_data = {}
+        table_data = []
 
-        for section in ['start', 'ec1', 'static', 'ec2']:
-            ts = curve_data[section]
+        # Check if there are more than one section of a type
+        count_static = sum(1 for ts in curve_data if ts.org_type == 'static')
+        count_ease = sum(1 for ts in curve_data if ts.org_type == 'easement')
+        s, e = 0, 0
+
+        for i, ts in enumerate(curve_data):
             if ts is None:
                 continue
 
@@ -301,40 +302,64 @@ class Interface(object):
                         "Something went wrong here - org curvature {0} and "
                         "curvature {1}".format(ts.org_curvature, ts.curvature))
 
+            # Setting curve names
+            if i == 0 and ts.org_type is None:
+                section_name = 'Start point'
+            elif ts.org_type == 'static':
+                if count_static > 1:
+                    s += 1
+                    section_name = 'Static curve {}'.format(s)
+                else:
+                    section_name = 'Static curve'
+            elif ts.org_type == 'easement':
+                if count_ease > 1:
+                    e += 1
+                    section_name = 'Easement curve {}'.format(e)
+                else:
+                    section_name = 'Easement curve'
+            else:
+                raise AttributeError('Incorrect type {!r} for TrackCoord '
+                                     'object {!r}.'.format(ts.org_type, ts))
+
             length = ts.org_length if ts.org_length is not None else ''
             bearing = '{:7.3f}'.format(ts.bearing.deg)
-            rotation = '{0:7.3f} {1:.2}'.format(*ts.quad)
 
-            row_data = [labels[section], length, roc_text, (ts.pos_x, ts.pos_z),
-                        bearing, rotation]
-            current_row = dict(zip(ls_headers, row_data))
+            rotation, quad = '{0:7.3f}'.format(ts.quad[0]), ts.quad[1]
+            if rotation in ['0.000', '360.000']:
+                quad = 'N' if quad in ['NE', 'NW'] else 'S'
+            elif rotation == '90.000':
+                quad = 'W' if quad in ['NW', 'SW'] else 'E'
+            rotation = '{r} {q:2}'.format(r=rotation, q=quad)
 
-            table_data[section] = current_row
+            current_row = {'name': section_name, 'length': length,
+                           'roc': roc_text, 'position': (ts.pos_x, ts.pos_z),
+                           'bearing': bearing, 'rotation': rotation}
+
+            table_data.append(current_row)
 
         # Finding the maximum string length to fit in the position values
-        pos_values = [table_data[k]['position'] for k in table_data.keys()]
+        pos_values = [k['position'] for k in table_data]
         mx = max(len('{: .3f}'.format(i[0])) for i in pos_values)
         mz = max(len('{: .3f}'.format(i[1])) for i in pos_values)
 
         # Applying the max length to the table position values
-        for k, v in table_data.items():
-            x, z = v['position']
-            table_data[k]['position'] = \
+        for row in table_data:
+            x, z = row['position']
+            row['position'] = \
                 '{x: {mx}.3f}  {z: {mz}.3f}'.format(x=x, z=z, mx=mx, mz=mz)
 
         # Finding the maximum string length to fit in the length values
-        length_max = max(len('{:.1f}'.format(table_data[k]['length'])) for k in
-                         table_data.keys() if table_data[k]['length'] != '')
+        length_max = max(len('{:.1f}'.format(row['length'])) for row in
+                         table_data if row['length'] != '')
         length_max = length_max if length_max >= 6 else 6
-        for k, v in table_data.items():
-            if v['length'] != '':
-                table_data[k]['length'] = '{l:{ml}.1f}'.format(
-                    l=v['length'], ml=length_max)
+        for row in table_data:
+            if row['length'] != '':
+                row['length'] = '{l:{ml}.1f}'.format(l=row['length'], ml=length_max)
 
         # Calculating the max column widths
         column_width = {}
         for h in ls_headers:
-            list_values = [v[h] for k, v in table_data.items()]
+            list_values = [row[h] for row in table_data]
             column_width[h] = max(len(i) for i in [headers[h]] + list_values)
 
         # Creating the table
@@ -343,12 +368,7 @@ class Interface(object):
         table = ['  |  '.join(header_row),
                  '--+--'.join(column_width[h] * '-' for h in ls_headers)]
 
-        for section in ['start', 'ec1', 'static', 'ec2']:
-            try:
-                row = table_data[section]
-            except KeyError:
-                continue
-
+        for row in table_data:
             row_data = ['{h:{m}}'.format(h=row[h], m=column_width[h])
                         for h in ls_headers]
             table += ['  |  '.join(row_data)]

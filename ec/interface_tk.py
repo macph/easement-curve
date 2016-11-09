@@ -255,7 +255,6 @@ class App(object):
         # Check if there are more than one section of a type
         count_static = sum(1 for ts in result if ts.org_type == 'static')
         count_ease = sum(1 for ts in result if ts.org_type == 'easement')
-        print(count_static, count_static)
         s, e = 0, 0
 
         for i, ts in enumerate(result):
