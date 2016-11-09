@@ -162,27 +162,27 @@ class CurveFitRadiusTests(BaseTCTests):
 
     def test_curve_assert_radius(self):
         curve = self.straight_high.curve_fit_radius(self.end_left, 600)
-        self.assertAlmostEqual(curve['static'].radius, 600)
+        self.assertAlmostEqual(curve[2].radius, 600)
     
     def test_curve_radius_left(self):
         curve = self.straight_high.curve_fit_radius(self.end_left, 600)
-        self.assertTrackAlign(curve['ec2'], self.end_left)
+        self.assertTrackAlign(curve[-1], self.end_left)
 
     def test_curve_radius_right(self):
         curve = self.straight_high.curve_fit_radius(self.end_right, 600)
-        self.assertTrackAlign(curve['ec2'], self.end_right)
+        self.assertTrackAlign(curve[-1], self.end_right)
 
     def test_curve_radius_can_fit(self):
         curve = self.straight_high.curve_fit_radius(self.end_low_angle, 1200)
-        self.assertTrackAlign(curve['ec2'], self.end_low_angle)
+        self.assertTrackAlign(curve[-1], self.end_low_angle)
 
     def test_curve_radius_far_left(self):
         curve = self.straight_low.curve_fit_radius(self.end_far_left, 225, False)
-        self.assertTrackAlign(curve['ec2'], self.end_far_left)
+        self.assertTrackAlign(curve[-1], self.end_far_left)
 
     def test_curve_radius_far_right(self):
         curve = self.straight_low.curve_fit_radius(self.end_far_right, 225, True)
-        self.assertTrackAlign(curve['ec2'], self.end_far_right)
+        self.assertTrackAlign(curve[-1], self.end_far_right)
 
 
 class CurveFitLengthTests(BaseTCTests):
@@ -205,23 +205,23 @@ class CurveFitLengthTests(BaseTCTests):
 
     def test_curve_assert_length(self):
         curve = self.straight_high.curve_fit_length(self.end_left, 300)
-        self.assertAlmostEqual(curve['static'].org_length, 300, 4)
+        self.assertAlmostEqual(curve[2].org_length, 300, 4)
 
     def test_curve_radius_left(self):
         curve = self.straight_high.curve_fit_length(self.end_left, 300)
-        self.assertTrackAlign(curve['ec2'], self.end_left)
+        self.assertTrackAlign(curve[-1], self.end_left)
 
     def test_curve_radius_right(self):
         curve = self.straight_high.curve_fit_length(self.end_right, 300)
-        self.assertTrackAlign(curve['ec2'], self.end_right)
+        self.assertTrackAlign(curve[-1], self.end_right)
 
     def test_curve_radius_far_left(self):
         curve = self.straight_low.curve_fit_length(self.end_far_left, 1000, False)
-        self.assertTrackAlign(curve['ec2'], self.end_far_left)
+        self.assertTrackAlign(curve[-1], self.end_far_left)
 
     def test_curve_radius_far_right(self):
         curve = self.straight_low.curve_fit_length(self.end_far_right, 1000, True)
-        self.assertTrackAlign(curve['ec2'], self.end_far_right)
+        self.assertTrackAlign(curve[-1], self.end_far_right)
 
 
 class CurveFitPointTests(BaseTCTests):
@@ -250,28 +250,28 @@ class CurveFitPointTests(BaseTCTests):
 
     def test_curve_point_left(self):
         curve = self.straight_high.curve_fit_point(self.end_left)
-        self.assertTrackAlign(curve['ec2'], self.end_left)
+        self.assertTrackAlign(curve[-1], self.end_left)
 
     def test_curve_point_right(self):
         curve = self.straight_high.curve_fit_point(self.end_right)
-        self.assertTrackAlign(curve['ec2'], self.end_right)
+        self.assertTrackAlign(curve[-1], self.end_right)
 
     def test_curve_point_far_left(self):
         curve = self.straight_low.curve_fit_point(self.end_far_left)
-        self.assertTrackAlign(curve['ec2'], self.end_far_left)
+        self.assertTrackAlign(curve[-1], self.end_far_left)
 
     def test_curve_point_far_right(self):
         curve = self.straight_low.curve_fit_point(self.end_far_right)
-        self.assertTrackAlign(curve['ec2'], self.end_far_right)
+        self.assertTrackAlign(curve[-1], self.end_far_right)
 
     def test_curve_point_reverse_left(self):
         curve = self.straight_low.curve_fit_point(self.end_reverse_left)
-        self.assertTrackAlign(curve['ec2'], self.end_reverse_left)
+        self.assertTrackAlign(curve[-1], self.end_reverse_left)
 
     def test_curve_point_reverse_right(self):
         curve = self.straight_low.curve_fit_point(self.end_reverse_right)
-        self.assertTrackAlign(curve['ec2'], self.end_reverse_right)
+        self.assertTrackAlign(curve[-1], self.end_reverse_right)
 
     def test_curve_point_curved_right(self):
         curve = self.right.curve_fit_point(self.end_right, self.start_curved_add)
-        self.assertTrackAlign(curve['ec2'], self.end_right)
+        self.assertTrackAlign(curve[-1], self.end_right)

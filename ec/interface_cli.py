@@ -9,6 +9,7 @@ from . import __version__
 from . import curve
 
 # TODO: Fix any problems and add all text.
+# TODO: Fix the print_curve_data() method to accept list of TrackCoords, as in interface_tk.py.
 
 
 help_text = """

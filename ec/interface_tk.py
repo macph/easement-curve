@@ -10,7 +10,6 @@ from . import curve
 
 # TODO: Clean up the code and test??
 # TODO: Sort out the text.
-# TODO: Add docstrings.
 # TODO: Create an About dialog box.
 # TODO: Consider changing TreeView to a grid of Text widgets.
 
@@ -216,6 +215,8 @@ class App(object):
         """ Takes data, calculates the curve geometry and passes results to
             table.
         """
+        self.result.clear_table()
+
         if self.dim.get() == 'mph':
             self.mph = self.speed.get()
         else:
@@ -241,22 +242,23 @@ class App(object):
         else:
             self.refresh_message('All OK.')
 
-        order = ['start', 'ec1', 'static', 'ec2']
-        labels = ("Start point", "Easement 1", "Static curve", "Easement 2")
-        self.result.clear_table()
-        dict_table = self.display_data(result, order, labels)
-        self.result.load_table(order, dict_table)
+        table = self.display_data(result)
+        self.result.load_table(table)
 
     @staticmethod
-    def display_data(result, order, labels):
+    def display_data(result):
         """ Formats the results data to make them readable and gives correct
             decimal places.
         """
-        data = {}
-        dict_labels = dict(zip(order, labels))
+        data = []
 
-        for sec in order:
-            ts = result[sec]
+        # Check if there are more than one section of a type
+        count_static = sum(1 for ts in result if ts.org_type == 'static')
+        count_ease = sum(1 for ts in result if ts.org_type == 'easement')
+        print(count_static, count_static)
+        s, e = 0, 0
+
+        for i, ts in enumerate(result):
             if ts is None:
                 continue
 
@@ -267,7 +269,6 @@ class App(object):
                     roc_text = ts.clockwise.capitalize()
                 else:
                     roc_text = '{0:.1f} {1}'.format(ts.radius, ts.clockwise)
-
             else:
                 # Both values needed.
                 if ts.org_curvature != 0 and ts.curvature != 0:
@@ -284,21 +285,42 @@ class App(object):
                         "Something went wrong here - org curvature {0} and "
                         "curvature {1}".format(ts.org_curvature, ts.curvature))
 
-            section_name = dict_labels[sec]
+            # Setting curve names
+            if i == 0 and ts.org_type is None:
+                section_name = 'Start point'
+            elif ts.org_type == 'static':
+                if count_static > 1:
+                    s += 1
+                    section_name = 'Static curve {}'.format(s)
+                else:
+                    section_name = 'Static curve'
+            elif ts.org_type == 'easement':
+                if count_ease > 1:
+                    e += 1
+                    section_name = 'Easement {}'.format(e)
+                else:
+                    section_name = 'Easement'
+            else:
+                raise AttributeError('Incorrect type {!r} for TrackCoord '
+                                     'object {!r}.'.format(ts.org_type, ts))
+
+            # Setting length value to 1 decimal place
             length = '{:.1f}'.format(ts.org_length) if \
                 ts.org_length is not None else ''
 
+            # Setting position values to 3 decimal places
             pos_x, pos_z = '{:.3f}'.format(ts.pos_x), \
                            '{:.3f}'.format(ts.pos_z)
 
+            # Setting rotation and quad values to 3 decimal places
             rotation, quad = '{:.3f}'.format(ts.quad[0]), ts.quad[1]
-            if rotation == '0.000':
+            if rotation in ['0.000', '360.000']:
                 quad = 'N' if quad in ['NE', 'NW'] else 'S'
             elif rotation == '90.000':
                 quad = 'W' if quad in ['NW', 'SW'] else 'E'
 
-            data[sec] = (section_name, length, roc_text,
-                         pos_x, pos_z, rotation, quad)
+            data.append((section_name, length, roc_text,
+                         pos_x, pos_z, rotation, quad))
 
         return data
 
@@ -376,6 +398,9 @@ class EntryM(LabelFrame, metaclass=ABCMeta):
 
 
 class EntryMethod1(EntryM):
+    """ Fits curve with set radius of curvature to a pair of straight tracks
+        at an angle. Can set CW/ACW for direction the curve takes.
+    """
 
     def get_table(self):
         self.start_label("1st straight track", 0)
@@ -412,6 +437,10 @@ class EntryMethod1(EntryM):
 
 
 class EntryMethod2(EntryM):
+    """ Extends curve from point on track (can be either straight or curved -
+        radius of curvature is calculated from additional pair of coordinates)
+        to join a straight track.
+    """
 
     def get_table(self):
         self.start_label("Add. point on starting track", 0)
@@ -443,6 +472,7 @@ class EntryMethod2(EntryM):
 
 
 class Result(Frame):
+    """ Results table, based on TreeView widget. """
 
     def __init__(self, parent):
         super(Result, self).__init__(parent)
@@ -450,6 +480,7 @@ class Result(Frame):
         self.create_table()
 
     def create_table(self):
+        """ Initalises table. """
         tv = Treeview(self, height=5)
         Style().configure('Treeview', rowheight=get_text_length(3.5))
 
@@ -475,12 +506,13 @@ class Result(Frame):
         tv.grid(sticky=(N, S, W, E))
         self.treeview = tv
 
-    def load_table(self, order, data):
-        for section in order:
-            if data[section] is not None:
-                self.treeview.insert('', 'end', text='', values=data[section])
+    def load_table(self, data):
+        """ Loads table using data (list of tuples). """
+        for sec in data:
+            self.treeview.insert('', 'end', text='', values=sec)
 
     def clear_table(self):
+        """ Deletes all data from table. """
         self.treeview.delete(*self.treeview.get_children())
 
 

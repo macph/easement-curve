@@ -117,6 +117,7 @@ class TrackCoord(object):
 
         except KeyError:
             raise CoordException("{!r} is not a valid quadrant.".format(quad))
+
         except TypeError as err:
             raise CoordException(
                 "{0:!r} is not a valid number for the rotation variable."
@@ -558,10 +559,9 @@ class TrackCurve(TrackSection):
         static = self.ts_static_curve(ec1, static_curve_angle)
         ec2 = self.ts_easement_curve(static, 0)
 
-        # Assembling into a dict and copying to ensure no changed values -
-        # they depends on each other
-        curve_data = {'start': copy(self.start), 'ec1': copy(ec1),
-                      'static': copy(static), 'ec2': copy(ec2)}
+        # Assembling into a list and copying to ensure no changed values -
+        # they depend on each other
+        curve_data = [copy(s) for s in [self.start, ec1, static, ec2]]
 
         # Finds the required translation to align the curve with the 2 tracks
         # Should already be aligned with 1st
@@ -572,7 +572,7 @@ class TrackCurve(TrackSection):
         end_point = line_track.intersect(line_end_point)
 
         # Applies translation to each of the sections
-        for ts in curve_data.values():
+        for ts in curve_data:
             ts.move(end_point[0] - ec2.pos_x, end_point[1] - ec2.pos_z)
 
         return curve_data
@@ -600,7 +600,7 @@ class TrackCurve(TrackSection):
                     raise
 
             else:
-                static_length = curve['static'].org_length
+                static_length = curve[2].org_length
                 if round(static_length - length, places) == 0:
                     # Accurate enough
                     return curve
@@ -713,9 +713,8 @@ class TrackCurve(TrackSection):
                     ec2 = self.ts_easement_curve(static, 0)
 
                 # Copying to ensure no changes
-                curve_data = {'start': copy(self.start), 'ec1': copy(ec1),
-                              'static': copy(static), 'ec2': copy(ec2)}
-                end_point = (curve_data['ec2'].pos_x, curve_data['ec2'].pos_z)
+                curve_data = [copy(s) for s in [self.start, ec1, static, ec2]]
+                end_point = (curve_data[-1].pos_x, curve_data[-1].pos_z)
 
                 if line_other.dist(end_point) < 10 ** (-places):
                     # Result accurate enough
