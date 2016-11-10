@@ -2,11 +2,12 @@
 # Tk graphical user interface for easement curve calculations
 
 from abc import ABCMeta, abstractmethod
+from sys import version_info
 from tkinter import *
 from tkinter.font import *
 from tkinter.ttk import *
 
-from . import curve
+from . import curve, __version__
 
 # TODO: Clean up the code and test??
 # TODO: Sort out the text.
@@ -48,14 +49,19 @@ class App(object):
         # Properties
         self._kph = None
 
-        # Whole frame
-        self.container = Frame(parent, padding="5 5 5 5")
+        # Setting up window
+        self.parent = parent
+        self.parent.title("Easement curve calculator")
+        self.parent.resizable(height=False, width=False)
+
+        # Main frame
+        self.container = Frame(self.parent, padding="5 5 5 5")
         self.container.grid(row=0, column=0)
 
         # Calc method select and description
         self.selected_method = StringVar()
         self.method_heading, self.method_description = None, None
-        self.select_method(row=0)
+        self.select_method_about(row=0)
         self.show_method_description(row=1)
 
         # Enter speed tolerance (in mph or km/h) and minimum radius
@@ -78,7 +84,7 @@ class App(object):
         self.message_actions(row=4)
 
         # Results table
-        self.result, self.instruction = None, None
+        self.result = None
         self.results(row=5)
 
         # Bindings
@@ -131,8 +137,9 @@ class App(object):
         minimum_radius.grid(column=4, row=0)
         Label(st, text="m", padding="4 0 0 0").grid(column=5, row=0)
 
-    def select_method(self, row):
-        """ Widget for calculation method selection. """
+    def select_method_about(self, row):
+        """ Widget for calculation method selection. as well as About button.
+        """
         sm = Frame(self.container, padding="6 0 0 0")
         sm.grid(column=0, row=row, sticky=(W, E))
         sm.columnconfigure(2, weight=1)
@@ -140,12 +147,15 @@ class App(object):
         Label(sm, text="Select method ").grid(column=0, row=0)
 
         options = ['1', '2']
-        method = OptionMenu(sm, self.selected_method, options[0], *options,
-                            command=self.refresh_method)
-        method.grid(column=1, row=0)
+        method_menu = OptionMenu(sm, self.selected_method, options[0],
+                                 *options, command=self.refresh_method)
+        method_menu.grid(column=1, row=0)
 
-        about = Button(sm, text="About")
+        about = Button(sm, text="About", command=self.open_about)
         about.grid(column=3, row=0, sticky=E)
+
+    def open_about(self, event=None):
+        AboutWindow(self.parent)
 
     def show_method_description(self, row):
         """ LabelFrame widget for displaying method description. """
@@ -159,7 +169,7 @@ class App(object):
             width=82, wraplength=int(get_text_length(82)), padding="4 0 0 4")
         self.method_description.grid(sticky=(W, E))
 
-    def refresh_method(self, event):
+    def refresh_method(self, event=None):
         """ Command to refresh method description and data entries depending
             on which method was selected.
         """
@@ -515,10 +525,37 @@ class Result(Frame):
         self.treeview.delete(*self.treeview.get_children())
 
 
+class AboutWindow(Toplevel):
+
+    def __init__(self, parent):
+        super(AboutWindow, self).__init__(parent)
+
+        # Positioning the window relative to the main window
+        offset = 30
+        x, y = parent.winfo_rootx(), parent.winfo_rooty()
+        self.geometry('+{x:d}+{y:d}'.format(x=x+offset, y=y+offset))
+
+        # Setting up the window
+        self.title('About')
+        self.transient(parent)
+        self.resizable(False, False)
+
+        self.container = Frame(self, padding="5 5 5 5")
+        self.container.grid(row=0, column=0)
+
+        text = ('Easement curve calculator, version {ecv}\n'
+                'Copyright Ewan Macpherson, 2016\n'
+                'Python version {pyv}')
+        about_text = Label(self.container, text=text.format(
+            ecv=__version__, pyv='.'.join(str(i) for i in version_info[:3])))
+        about_text.grid(row=0, column=1, sticky=W)
+
+        exit_button = Button(self.container, text='Exit', command=self.withdraw)
+        exit_button.grid(row=1, column=0, columnspan=2, sticky=E)
+
+
 def main():
     root = Tk()
-    root.title("Easement curve calculator")
-    root.resizable(height=False, width=False)
     App(root)
     root.mainloop()
 

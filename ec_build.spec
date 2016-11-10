@@ -3,7 +3,7 @@
 block_cipher = None
 
 a = Analysis(['__main__.py'],
-             pathex=['C:\\Users\\Ewan\\Projects\\EC'],
+             pathex=['.'],
              binaries=None,
              datas=None,
              hiddenimports=[],
