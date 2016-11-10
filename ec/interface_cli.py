@@ -5,8 +5,7 @@ import os
 import re
 import sys
 
-from . import __version__
-from . import curve
+from ec import __version__, coord, section, curve
 
 # TODO: Fix any problems and add all text.
 
@@ -209,10 +208,10 @@ class Interface(object):
             else:
                 raise InterfaceException("An invalid method was used")
 
-        except curve.CoordException as err:
+        except coord.CoordException as err:
             print("Coordinate error:", err, sep='\n')
             return
-        except curve.TrackException as err:
+        except section.TrackException as err:
             print("Track section error:", err, sep='\n')
             return
         except curve.CurveException as err:
@@ -232,7 +231,7 @@ class Interface(object):
             return str_input
 
     @staticmethod
-    def get_coord(coord):
+    def get_coord(coordinates):
         """ Takes a string with 4 variables - x and y positions, y rotation and
             quadrant alignment - and outputs a TrackCoord object with these
             arguments.
@@ -240,12 +239,12 @@ class Interface(object):
         try:
             find_coord = re.match('^(-?\d*\.?\d+)[,\s]+(-?\d*\.?\d+)[,\s]+'
                                   '(-?\d*\.?\d+)[,\s]+([enswENSW]{2})\s*$',
-                                  coord)
+                                  coordinates)
             dict_coord = {
                 'pos_x': float(find_coord.group(1)),
                 'pos_z': float(find_coord.group(2)),
                 'rotation': float(find_coord.group(3)),
-                'quad': curve.Q[find_coord.group(4)],
+                'quad': coord.Q[find_coord.group(4)],
                 'curvature': 0
             }
 
@@ -253,7 +252,7 @@ class Interface(object):
             raise InterfaceException("The coordinates must be valid integers/"
                                      "floats with a quadrant specified.")
 
-        return curve.TrackCoord(**dict_coord)
+        return coord.TrackCoord(**dict_coord)
 
     # noinspection PyTypeChecker
     @staticmethod

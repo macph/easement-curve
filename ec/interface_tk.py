@@ -7,7 +7,7 @@ from tkinter import *
 from tkinter.font import *
 from tkinter.ttk import *
 
-from . import curve, __version__
+from ec import coord, section, curve, __version__
 
 # TODO: Clean up the code and test??
 # TODO: Sort out the text.
@@ -239,11 +239,11 @@ class App(object):
             self.refresh_message('Error: All fields must be filled in.', 'red')
             raise AttributeError from err
 
-        except (InterfaceException, curve.CoordException, curve.TrackException,
+        except (InterfaceException, coord.CoordException, section.TrackException,
                 curve.CurveException) as err:
             err_string = {InterfaceException: "Input error: ",
-                          curve.CoordException: "Coordinate error: ",
-                          curve.TrackException: "Track section error: ",
+                          coord.CoordException: "Coordinate error: ",
+                          section.TrackException: "Track section error: ",
                           curve.CurveException: "Curve calculation error: "}
             message = err_string[type(err)] + str(err)
             self.refresh_message(message, 'red')
@@ -362,17 +362,17 @@ class EntryM(LabelFrame, metaclass=ABCMeta):
         """ Takes a list with 2 or 4 variables - X and Z positions, rotation
             and quad - and converts to a TrackCoord object.
         """
-        coord = [i.get() for i in data]
+        coordinates = [i.get() for i in data]
         try:
-            if coord[3].upper() in ['NE', 'SE', 'SW', 'NW']:
-                rotation = float(coord[2])
-                quad = curve.Q[coord[3].upper()]
+            if coordinates[3].upper() in ['NE', 'SE', 'SW', 'NW']:
+                rotation = float(coordinates[2])
+                quad = coord.Q[coordinates[3].upper()]
             else:
                 raise AttributeError
 
             dict_coord = {
-                'pos_x': float(coord[0]),
-                'pos_z': float(coord[1]),
+                'pos_x': float(coordinates[0]),
+                'pos_z': float(coordinates[1]),
                 'rotation': rotation,
                 'quad': quad,
                 'curvature': 0
@@ -382,7 +382,7 @@ class EntryM(LabelFrame, metaclass=ABCMeta):
             raise InterfaceException("The coordinates must be valid integers/"
                                      "floats with a quadrant specified.")
 
-        return curve.TrackCoord(**dict_coord)
+        return coord.TrackCoord(**dict_coord)
 
     @abstractmethod
     def get_table(self):
@@ -473,9 +473,11 @@ class EntryMethod2(EntryM):
         track = curve.TrackCurve(curve=start_track, **self.args())
 
         # Empty fields - ignore extra point and assume first track straight
-        if all(k.get() == '' for k in self.controller.line0):
+        if all(k.get() == '' for k in self.controller.line0[:2]):
+            print('hi there.')
             return track.curve_fit_point(other=end_track)
         else:
+            print('nope')
             pre_track = self.get_coord(self.controller.line0)
             return track.curve_fit_point(other=end_track, add_point=pre_track)
 
