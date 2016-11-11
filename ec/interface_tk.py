@@ -13,7 +13,6 @@ from ec import coord, section, curve, __version__
 # TODO: Clean up the code and test??
 # TODO: Sort out the text.
 # TODO: Consider changing TreeView to a grid of Text widgets.
-# TODO: Consider subclassing MainWindow() and parts of it - need to ensure the Entry sections will not break.
 
 
 def text_length(length, font='TkDefaultFont'):
@@ -33,7 +32,7 @@ class InterfaceException(Exception):
     pass
 
 
-class MainWindow(object):
+class MainWindow(ttk.Frame):
     """ Main application window. """
 
     description = {
@@ -46,17 +45,11 @@ class MainWindow(object):
               "it is left empty the first track is assumed to be straight.")
     }
 
-    def __init__(self, parent):
-        # Properties
+    def __init__(self, parent, **kwargs):
+        super(MainWindow, self).__init__(parent, **kwargs)
+
         self._kph = None
-
-        # Setting up window
         self.parent = parent
-
-        # Main frame
-        padding = '{t} {t} {t} {t}'.format(t=text_length(1))
-        self.container = ttk.Frame(self.parent, padding=padding)
-        self.container.grid(row=0, column=0)
 
         # Calc method select and description
         self.sm_frame, self.about = None, None
@@ -77,7 +70,7 @@ class MainWindow(object):
         self.entries = {'1': EntryMethod1, '2': EntryMethod2}
         self.row = 3
         self.current_entry = self.entries[self.method](
-            self.container, self, row=self.row)
+            self, row=self.row)
 
         # Message
         ttk.Style().configure("Red.TLabel", foreground="red")
@@ -122,7 +115,7 @@ class MainWindow(object):
     def select_speed_radius(self, row):
         """ LabelFrame widget with speed tolerance and minimum radius entries.
         """
-        self.sr_frame = ttk.LabelFrame(self.container, text="Curve setup",
+        self.sr_frame = ttk.LabelFrame(self, text="Curve setup",
                                        padding="0 0 0 8")
         self.sr_frame.grid(column=0, row=row, sticky=(tk.W, tk.E))
 
@@ -144,7 +137,7 @@ class MainWindow(object):
     def select_method_about(self, row):
         """ Widget for calculation method selection. as well as About button.
         """
-        self.sm_frame = ttk.Frame(self.container, padding="6 0 0 0")
+        self.sm_frame = ttk.Frame(self, padding="6 0 0 0")
         self.sm_frame.grid(column=0, row=row, sticky=(tk.W, tk.E))
         self.sm_frame.columnconfigure(2, weight=1)
 
@@ -167,7 +160,7 @@ class MainWindow(object):
     def show_method_description(self, row):
         """ LabelFrame widget for displaying method description. """
         self.method_heading = ttk.LabelFrame(
-            self.container, text="Method {} description".format(self.method))
+            self, text="Method {} description".format(self.method))
         self.method_heading.grid(row=row, sticky=(tk.W, tk.E))
 
         self.method_description = ttk.Label(self.method_heading,
@@ -187,7 +180,7 @@ class MainWindow(object):
         # Destroys current entry widget and create new
         self.current_entry.destroy()
         self.current_entry = self.entries[self.method](
-            self.container, self, self.row)
+            self, self.row)
 
         # Lowers entry widget below message/actions to ensure correct tab order
         if self.msg_frame is not None:
@@ -197,7 +190,7 @@ class MainWindow(object):
         """ Row for message (all OK or errors in calculations) and Calculate/
             Clear buttons.
         """
-        self.msg_frame = ttk.Frame(self.container, padding="0 4 0 4")
+        self.msg_frame = ttk.Frame(self, padding="0 4 0 4")
         self.msg_frame.grid(column=0, row=row, sticky=(tk.W, tk.E))
         self.msg_frame.columnconfigure(1, weight=1)
         self.msg_frame.columnconfigure(3, pad=4)
@@ -220,7 +213,7 @@ class MainWindow(object):
 
     def results(self, row):
         """ Shows the results table. """
-        self.result = Result(self.container)
+        self.result = Result(self)
         self.result.grid(column=0, row=row, sticky=(tk.W, tk.E))
 
     def clear(self):
@@ -403,7 +396,7 @@ class AboutDialog(tk.Toplevel):
 class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
     """ Common class for entry data table. Must be subclassed. """
 
-    def __init__(self, parent, controller, row):
+    def __init__(self, parent, row):
         super(EntryM, self).__init__(parent)
         self.config(text="Curve data", padding="0 0 0 10")
         self.grid(row=row, column=0, sticky=(tk.N, tk.W, tk.E))
@@ -414,14 +407,12 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
             self.grid_rowconfigure(j, pad=4)
         self.grid_columnconfigure(0, pad=4)
 
-        self.controller = controller
-        self.curve_args = None
-
+        self.master = parent
         self.get_table()
 
     def args(self):
-        return {'speed': self.controller.kph,
-                'minimum': self.controller.min_radius.get()}
+        return {'speed': self.master.kph,
+                'minimum': self.master.min_radius.get()}
 
     @staticmethod
     def get_coord(data):
@@ -479,33 +470,33 @@ class EntryMethod1(EntryM):
 
     def get_table(self):
         self.start_label("1st straight track", 0)
-        self.entry_boxes(self.controller.line1, 4, 0)
+        self.entry_boxes(self.master.line1, 4, 0)
         self.end_label("X, Z, R, Q", 0)
 
         self.start_label("2nd straight track", 1)
-        self.entry_boxes(self.controller.line2, 4, 1)
+        self.entry_boxes(self.master.line2, 4, 1)
         self.end_label("X, Z, R, Q", 1)
 
         self.start_label("Radius of curvature", 2)
-        ttk.Entry(self, textvariable=self.controller.radius, width=8
+        ttk.Entry(self, textvariable=self.master.radius, width=8
                   ).grid(row=2, column=1, sticky=tk.W)
         ttk.Label(self, text="m").grid(row=2, column=2, sticky=tk.W)
         ttk.Label(self, text="direction", justify=tk.RIGHT).grid(row=2, column=3, sticky=tk.E)
         options = ['N/A', 'CW', 'ACW']
-        ttk.OptionMenu(self, self.controller.cw, options[0], *options
+        ttk.OptionMenu(self, self.master.cw, options[0], *options
                        ).grid(row=2, column=4, sticky=tk.W, columnspan=2)
 
     def get_result(self):
-        start_track = self.get_coord(self.controller.line1)
-        end_track = self.get_coord(self.controller.line2)
+        start_track = self.get_coord(self.master.line1)
+        end_track = self.get_coord(self.master.line2)
         try:
-            curve_radius = float(self.controller.radius.get())
+            curve_radius = float(self.master.radius.get())
         except ValueError:
             raise InterfaceException('Radius of curvature must be a number.')
 
         track = curve.TrackCurve(curve=start_track, **self.args())
         dict_cw = {'CW': True, 'ACW': False}
-        clockwise = dict_cw.get(self.controller.cw.get())
+        clockwise = dict_cw.get(self.master.cw.get())
 
         return track.curve_fit_radius(other=end_track, radius=curve_radius,
                                       clockwise=clockwise)
@@ -519,30 +510,30 @@ class EntryMethod2(EntryM):
 
     def get_table(self):
         self.start_label("Add. point on starting track", 0)
-        self.entry_boxes(self.controller.line0, 2, 0)
+        self.entry_boxes(self.master.line0, 2, 0)
         self.end_label("X, Z", 0)
-        self.controller.line0[2].set('0')
-        self.controller.line0[3].set('NE')
+        self.master.line0[2].set('0')
+        self.master.line0[3].set('NE')
 
         self.start_label("Starting point on curved track", 1)
-        self.entry_boxes(self.controller.line1, 4, 1)
+        self.entry_boxes(self.master.line1, 4, 1)
         self.end_label("X, Z, R, Q", 1)
 
         self.start_label("Straight track to join", 2)
-        self.entry_boxes(self.controller.line2, 4, 2)
+        self.entry_boxes(self.master.line2, 4, 2)
         self.end_label("X, Z, R, Q", 2)
 
     def get_result(self):
-        start_track = self.get_coord(self.controller.line1)
-        end_track = self.get_coord(self.controller.line2)
+        start_track = self.get_coord(self.master.line1)
+        end_track = self.get_coord(self.master.line2)
 
         track = curve.TrackCurve(curve=start_track, **self.args())
 
         # Check if first two fields are empty - if so, track is straight
-        if all(k.get() == '' for k in self.controller.line0[:2]):
+        if all(k.get() == '' for k in self.master.line0[:2]):
             return track.curve_fit_point(other=end_track)
         else:
-            pre_track = self.get_coord(self.controller.line0)
+            pre_track = self.get_coord(self.master.line0)
             return track.curve_fit_point(other=end_track, add_point=pre_track)
 
 
@@ -595,7 +586,11 @@ def main():
     root = tk.Tk()
     root.title("Easement curve calculator")
     root.resizable(height=False, width=False)
-    MainWindow(root)
+
+    padding = '{t} {t} {t} {t}'.format(t=text_length(1))
+    mw = MainWindow(root, padding=padding)
+    mw.grid(row=0, column=0)
+
     root.mainloop()
 
 if __name__ == "__main__":
