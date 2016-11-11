@@ -3,35 +3,37 @@
 
 from abc import ABCMeta, abstractmethod
 from sys import version_info
-from tkinter import *
-from tkinter.font import *
-from tkinter.ttk import *
+
+import tkinter as tk
+import tkinter.font as tkfont
+import tkinter.ttk as ttk
 
 from ec import coord, section, curve, __version__
 
 # TODO: Clean up the code and test??
 # TODO: Sort out the text.
 # TODO: Consider changing TreeView to a grid of Text widgets.
+# TODO: Consider subclassing MainWindow() and parts of it - need to ensure the Entry sections will not break.
 
 
 def text_length(length, font='TkDefaultFont'):
     """ Retrieves the length of a string defined by number of characters
         in pixels.
     """
-    base_length = nametofont(font).measure('e' * 80)
+    base_length = tkfont.nametofont(font).measure('e' * 80)
     return round(base_length * length / 80)
 
 
 def multi_string_var(i=4):
     """ Creates a list of multiple StringVar instances. """
-    return [StringVar() for j in range(i)]
+    return [tk.StringVar() for j in range(i)]
 
 
 class InterfaceException(Exception):
     pass
 
 
-class App(object):
+class MainWindow(object):
     """ Main application window. """
 
     description = {
@@ -50,37 +52,35 @@ class App(object):
 
         # Setting up window
         self.parent = parent
-        self.parent.title("Easement curve calculator")
-        self.parent.resizable(height=False, width=False)
 
         # Main frame
         padding = '{t} {t} {t} {t}'.format(t=text_length(1))
-        self.container = Frame(self.parent, padding=padding)
+        self.container = ttk.Frame(self.parent, padding=padding)
         self.container.grid(row=0, column=0)
 
         # Calc method select and description
         self.sm_frame, self.about = None, None
-        self.selected_method = StringVar()
+        self.selected_method = tk.StringVar()
         self.method_heading, self.method_description = None, None
         self.select_method_about(row=0)
         self.show_method_description(row=1)
 
         # Enter speed tolerance (in mph or km/h) and minimum radius
         self.sr_frame = None
-        self.speed, self.dim, self.min_radius = DoubleVar(), StringVar(), IntVar()
+        self.speed, self.dim, self.min_radius = tk.DoubleVar(), tk.StringVar(), tk.IntVar()
         self.select_speed_radius(row=2)
 
         # Create lists of stringvars and grid for entering data
         self.line0, self.line1, self.line2 = \
             multi_string_var(), multi_string_var(), multi_string_var()
-        self.radius, self.cw = StringVar(), StringVar()
+        self.radius, self.cw = tk.StringVar(), tk.StringVar()
         self.entries = {'1': EntryMethod1, '2': EntryMethod2}
         self.row = 3
         self.current_entry = self.entries[self.method](
             self.container, self, row=self.row)
 
         # Message
-        Style().configure("Red.TLabel", foreground="red")
+        ttk.Style().configure("Red.TLabel", foreground="red")
         self.msg_frame = None
         self.msg = None
         self.message_actions(row=4)
@@ -122,40 +122,40 @@ class App(object):
     def select_speed_radius(self, row):
         """ LabelFrame widget with speed tolerance and minimum radius entries.
         """
-        self.sr_frame = LabelFrame(self.container, text="Curve setup",
-                                   padding="0 0 0 8")
-        self.sr_frame.grid(column=0, row=row, sticky=(W, E))
+        self.sr_frame = ttk.LabelFrame(self.container, text="Curve setup",
+                                       padding="0 0 0 8")
+        self.sr_frame.grid(column=0, row=row, sticky=(tk.W, tk.E))
 
         options = ['mph', 'km/h']
-        Label(self.sr_frame, text="Speed tolerance ", padding="4 0 0 0"
-              ).grid(column=0, row=0)
-        Entry(self.sr_frame, textvariable=self.speed, width=6
-              ).grid(column=1, row=0)
-        option_dim = OptionMenu(self.sr_frame, self.dim, options[0], *options)
+        ttk.Label(self.sr_frame, text="Speed tolerance ", padding="4 0 0 0"
+                  ).grid(column=0, row=0)
+        ttk.Entry(self.sr_frame, textvariable=self.speed, width=6
+                  ).grid(column=1, row=0)
+        option_dim = ttk.OptionMenu(self.sr_frame, self.dim, options[0], *options)
         option_dim.config(width=5)
         option_dim.grid(column=2, row=0)
 
-        Label(self.sr_frame, text="Minimum radius of curvature "
-              ).grid(column=3, row=0)
-        Entry(self.sr_frame, textvariable=self.min_radius, width=6
-              ).grid(column=4, row=0)
-        Label(self.sr_frame, text="m", padding="4 0 0 0").grid(column=5, row=0)
+        ttk.Label(self.sr_frame, text="Minimum radius of curvature "
+                  ).grid(column=3, row=0)
+        ttk.Entry(self.sr_frame, textvariable=self.min_radius, width=6
+                  ).grid(column=4, row=0)
+        ttk.Label(self.sr_frame, text="m", padding="4 0 0 0").grid(column=5, row=0)
 
     def select_method_about(self, row):
         """ Widget for calculation method selection. as well as About button.
         """
-        self.sm_frame = Frame(self.container, padding="6 0 0 0")
-        self.sm_frame.grid(column=0, row=row, sticky=(W, E))
+        self.sm_frame = ttk.Frame(self.container, padding="6 0 0 0")
+        self.sm_frame.grid(column=0, row=row, sticky=(tk.W, tk.E))
         self.sm_frame.columnconfigure(2, weight=1)
 
-        Label(self.sm_frame, text="Select method ").grid(column=0, row=0)
+        ttk.Label(self.sm_frame, text="Select method ").grid(column=0, row=0)
 
         options = ['1', '2']
-        OptionMenu(self.sm_frame, self.selected_method, options[0], *options,
-                   command=self.refresh_method).grid(column=1, row=0)
+        ttk.OptionMenu(self.sm_frame, self.selected_method, options[0], *options,
+                       command=self.refresh_method).grid(column=1, row=0)
 
-        Button(self.sm_frame, text="About", command=self.open_about
-               ).grid(column=3, row=0, sticky=E)
+        ttk.Button(self.sm_frame, text="About", command=self.open_about
+                   ).grid(column=3, row=0, sticky=tk.E)
 
     def open_about(self, event=None):
         """ Opens the About dialog. """
@@ -166,15 +166,15 @@ class App(object):
 
     def show_method_description(self, row):
         """ LabelFrame widget for displaying method description. """
-        self.method_heading = LabelFrame(
+        self.method_heading = ttk.LabelFrame(
             self.container, text="Method {} description".format(self.method))
-        self.method_heading.grid(row=row, sticky=(W, E))
+        self.method_heading.grid(row=row, sticky=(tk.W, tk.E))
 
-        self.method_description = Label(self.method_heading,
-                                        text=self.description[self.method])
+        self.method_description = ttk.Label(self.method_heading,
+                                            text=self.description[self.method])
         self.method_description.config(
             width=82, wraplength=int(text_length(82)), padding="4 0 0 4")
-        self.method_description.grid(sticky=(W, E))
+        self.method_description.grid(sticky=(tk.W, tk.E))
 
     def refresh_method(self, event=None):
         """ Command to refresh method description and data entries depending
@@ -197,19 +197,19 @@ class App(object):
         """ Row for message (all OK or errors in calculations) and Calculate/
             Clear buttons.
         """
-        self.msg_frame = Frame(self.container, padding="0 4 0 4")
-        self.msg_frame.grid(column=0, row=row, sticky=(W, E))
+        self.msg_frame = ttk.Frame(self.container, padding="0 4 0 4")
+        self.msg_frame.grid(column=0, row=row, sticky=(tk.W, tk.E))
         self.msg_frame.columnconfigure(1, weight=1)
         self.msg_frame.columnconfigure(3, pad=4)
 
-        self.msg = Label(self.msg_frame, text='')
+        self.msg = ttk.Label(self.msg_frame, text='')
         self.msg.config(width=56, wraplength=text_length(56))
-        self.msg.grid(column=0, row=0, sticky=W)
+        self.msg.grid(column=0, row=0, sticky=tk.W)
 
-        Button(self.msg_frame, text="Calculate", command=self.calculate
-               ).grid(column=2, row=0, sticky=(N, E))
-        Button(self.msg_frame, text="Clear", command=self.clear
-               ).grid(column=3, row=0, sticky=(N, E))
+        ttk.Button(self.msg_frame, text="Calculate", command=self.calculate
+                   ).grid(column=2, row=0, sticky=(tk.N, tk.E))
+        ttk.Button(self.msg_frame, text="Clear", command=self.clear
+                   ).grid(column=3, row=0, sticky=(tk.N, tk.E))
 
     def refresh_message(self, message, colour='black'):
         """ Command to refresh the calculation message. """
@@ -221,7 +221,7 @@ class App(object):
     def results(self, row):
         """ Shows the results table. """
         self.result = Result(self.container)
-        self.result.grid(column=0, row=row, sticky=(W, E))
+        self.result.grid(column=0, row=row, sticky=(tk.W, tk.E))
 
     def clear(self):
         """ Command to clear and reset all entries/selections in data entry.
@@ -346,7 +346,7 @@ class App(object):
         return data
 
 
-class AboutDialog(Toplevel):
+class AboutDialog(tk.Toplevel):
     """ Extra dialog for showing About info. """
 
     def __init__(self, parent):
@@ -365,7 +365,7 @@ class AboutDialog(Toplevel):
         self.focus_set()
 
         # The window body
-        self.container = Frame(self, padding="5 5 5 5")
+        self.container = ttk.Frame(self, padding="5 5 5 5")
         self.container.grid(row=0, column=0)
         self.body()
 
@@ -376,8 +376,8 @@ class AboutDialog(Toplevel):
 
     def body(self):
         # Creating logo image
-        logo = PhotoImage(file='resources/logo_256.png')
-        logo_label = Label(self.container, image=logo)
+        logo = tk.PhotoImage(file='resources/logo_256.png')
+        logo_label = ttk.Label(self.container, image=logo)
         logo_label.grid(row=0, column=0)
         logo_label.image = logo
 
@@ -386,12 +386,12 @@ class AboutDialog(Toplevel):
         about_text = ('Easement curve calculator, version {ecv}\n'
                       'Copyright Ewan Macpherson, 2016\n'
                       'Python version {pyv}')
-        Label(self.container, text=about_text.format(ecv=__version__, pyv=py_version)
-              ).grid(row=0, column=1, sticky=W)
+        ttk.Label(self.container, text=about_text.format(ecv=__version__, pyv=py_version)
+                  ).grid(row=0, column=1, sticky=tk.W)
 
         # Close button
-        Button(self.container, text='Close', command=self.hide
-               ).grid(row=1, column=0, columnspan=2, sticky=E)
+        ttk.Button(self.container, text='Close', command=self.hide
+                   ).grid(row=1, column=0, columnspan=2, sticky=tk.E)
 
     def hide(self, event=None):
         self.withdraw()
@@ -400,13 +400,13 @@ class AboutDialog(Toplevel):
         self.deiconify()
 
 
-class EntryM(LabelFrame, metaclass=ABCMeta):
+class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
     """ Common class for entry data table. Must be subclassed. """
 
     def __init__(self, parent, controller, row):
         super(EntryM, self).__init__(parent)
         self.config(text="Curve data", padding="0 0 0 10")
-        self.grid(row=row, column=0, sticky=(N, W, E))
+        self.grid(row=row, column=0, sticky=(tk.N, tk.W, tk.E))
 
         for i in range(5):
             self.grid_columnconfigure(i, pad=4)
@@ -461,15 +461,15 @@ class EntryM(LabelFrame, metaclass=ABCMeta):
         pass
 
     def start_label(self, text, row, column=0):
-        Label(self, text=text, width=28).grid(row=row, column=column, sticky=E)
+        ttk.Label(self, text=text, width=28).grid(row=row, column=column, sticky=tk.E)
 
     def entry_boxes(self, variable, it, row, column=1, width=8):
         for i in range(it):
-            Entry(self, textvariable=variable[i], width=width
-                  ).grid(row=row, column=i+column, sticky=W)
+            ttk.Entry(self, textvariable=variable[i], width=width
+                      ).grid(row=row, column=i+column, sticky=tk.W)
 
     def end_label(self, text, row, column=5):
-        Label(self, text=text).grid(row=row, column=column, sticky=W)
+        ttk.Label(self, text=text).grid(row=row, column=column, sticky=tk.W)
 
 
 class EntryMethod1(EntryM):
@@ -487,13 +487,13 @@ class EntryMethod1(EntryM):
         self.end_label("X, Z, R, Q", 1)
 
         self.start_label("Radius of curvature", 2)
-        Entry(self, textvariable=self.controller.radius, width=8
-              ).grid(row=2, column=1, sticky=W)
-        Label(self, text="m").grid(row=2, column=2, sticky=W)
-        Label(self, text="direction", justify=RIGHT).grid(row=2, column=3, sticky=E)
+        ttk.Entry(self, textvariable=self.controller.radius, width=8
+                  ).grid(row=2, column=1, sticky=tk.W)
+        ttk.Label(self, text="m").grid(row=2, column=2, sticky=tk.W)
+        ttk.Label(self, text="direction", justify=tk.RIGHT).grid(row=2, column=3, sticky=tk.E)
         options = ['N/A', 'CW', 'ACW']
-        OptionMenu(self, self.controller.cw, options[0], *options
-                   ).grid(row=2, column=4, sticky=W, columnspan=2)
+        ttk.OptionMenu(self, self.controller.cw, options[0], *options
+                       ).grid(row=2, column=4, sticky=tk.W, columnspan=2)
 
     def get_result(self):
         start_track = self.get_coord(self.controller.line1)
@@ -546,7 +546,7 @@ class EntryMethod2(EntryM):
             return track.curve_fit_point(other=end_track, add_point=pre_track)
 
 
-class Result(Frame):
+class Result(ttk.Frame):
     """ Results table, based on TreeView widget. """
 
     def __init__(self, parent):
@@ -556,8 +556,8 @@ class Result(Frame):
 
     def create_table(self):
         """ Initalises table. """
-        tv = Treeview(self, height=5)
-        Style().configure('Treeview', rowheight=text_length(3.5))
+        tv = ttk.Treeview(self, height=5)
+        ttk.Style().configure('Treeview', rowheight=text_length(3.5))
 
         columns = ('section', 'length', 'roc', 'pos_x',
                    'pos_z', 'rotation', 'quad')
@@ -578,7 +578,7 @@ class Result(Frame):
             tv.heading(col, text=c[0], anchor='w')
             tv.column(col, anchor=c[1], width=text_length(c[2]))
 
-        tv.grid(sticky=(N, S, W, E))
+        tv.grid(sticky=(tk.N, tk.S, tk.W, tk.E))
         self.treeview = tv
 
     def load_table(self, data):
@@ -592,8 +592,10 @@ class Result(Frame):
 
 
 def main():
-    root = Tk()
-    App(root)
+    root = tk.Tk()
+    root.title("Easement curve calculator")
+    root.resizable(height=False, width=False)
+    MainWindow(root)
     root.mainloop()
 
 if __name__ == "__main__":
