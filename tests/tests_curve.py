@@ -8,6 +8,8 @@ import unittest
 
 sys.path.insert(0, os.path.abspath('..'))
 import ec.common
+import ec.coord
+import ec.section
 import ec.curve
 from tests.tests_common import CustomAssertions
 
@@ -20,31 +22,31 @@ class BaseTCTests(unittest.TestCase, CustomAssertions):
         minimum_high, speed_high = 500, 120
         minimum_low, speed_low = 200, 80
 
-        self.start_straight = ec.curve.TrackCoord(
-            pos_x=217.027, pos_z=34.523, rotation=48.882, quad=ec.curve.Q.NE, curvature=0)
-        self.start_curved = ec.curve.TrackCoord(
-            pos_x=354.667, pos_z=137.112, rotation=59.824, quad=ec.curve.Q.NE, curvature=-1/600)
-        self.start_curved_add = ec.curve.TrackCoord(
-            pos_x=287.741, pos_z=92.965, rotation=53.356, quad=ec.curve.Q.NE, curvature=0)
+        self.start_straight = ec.coord.TrackCoord(
+            pos_x=217.027, pos_z=34.523, rotation=48.882, quad=ec.coord.Q.NE, curvature=0)
+        self.start_curved = ec.coord.TrackCoord(
+            pos_x=354.667, pos_z=137.112, rotation=59.824, quad=ec.coord.Q.NE, curvature=-1/600)
+        self.start_curved_add = ec.coord.TrackCoord(
+            pos_x=287.741, pos_z=92.965, rotation=53.356, quad=ec.coord.Q.NE, curvature=0)
 
-        self.end_left = ec.curve.TrackCoord(
-            pos_x=467.962, pos_z=465.900, rotation=12.762, quad=ec.curve.Q.NE, curvature=0)
-        self.end_right = ec.curve.TrackCoord(
-            pos_x=582.769, pos_z=223.772, rotation=75.449, quad=ec.curve.Q.NE, curvature=0)
+        self.end_left = ec.coord.TrackCoord(
+            pos_x=467.962, pos_z=465.900, rotation=12.762, quad=ec.coord.Q.NE, curvature=0)
+        self.end_right = ec.coord.TrackCoord(
+            pos_x=582.769, pos_z=223.772, rotation=75.449, quad=ec.coord.Q.NE, curvature=0)
 
         # For curves with diff > 270
-        self.end_far_left = ec.curve.TrackCoord(
-            pos_x=-123.550, pos_z=199.813, rotation=5.913, quad=ec.curve.Q.SW, curvature=0)
-        self.end_far_right = ec.curve.TrackCoord(
-            pos_x=296.508, pos_z=681.428-1024, rotation=72.687, quad=ec.curve.Q.NW, curvature=0)
+        self.end_far_left = ec.coord.TrackCoord(
+            pos_x=-123.550, pos_z=199.813, rotation=5.913, quad=ec.coord.Q.SW, curvature=0)
+        self.end_far_right = ec.coord.TrackCoord(
+            pos_x=296.508, pos_z=681.428-1024, rotation=72.687, quad=ec.coord.Q.NW, curvature=0)
         # For curves with diff = 180
-        self.end_reverse_left = ec.curve.TrackCoord(
-            pos_x=6.616, pos_z=872.368, rotation=48.882, quad=ec.curve.Q.SW, curvature=0)
-        self.end_reverse_right = ec.curve.TrackCoord(
-            pos_x=569.182, pos_z=553.873-1024, rotation=48.882, quad=ec.curve.Q.SW, curvature=0)
+        self.end_reverse_left = ec.coord.TrackCoord(
+            pos_x=6.616, pos_z=872.368, rotation=48.882, quad=ec.coord.Q.SW, curvature=0)
+        self.end_reverse_right = ec.coord.TrackCoord(
+            pos_x=569.182, pos_z=553.873-1024, rotation=48.882, quad=ec.coord.Q.SW, curvature=0)
         # To test how RoC with low angle diff - should raise exception
-        self.end_low_angle = ec.curve.TrackCoord(
-            pos_x=400.495, pos_z=178.755, rotation=53.612, quad=ec.curve.Q.NE, curvature=0)
+        self.end_low_angle = ec.coord.TrackCoord(
+            pos_x=400.495, pos_z=178.755, rotation=53.612, quad=ec.coord.Q.NE, curvature=0)
 
         self.straight_high = ec.curve.TrackCurve(self.start_straight, minimum_high, speed_high)
         self.straight_low = ec.curve.TrackCurve(self.start_straight, minimum_low, speed_low)
@@ -59,12 +61,12 @@ class BaseTCTests(unittest.TestCase, CustomAssertions):
         del self.straight_high, self.straight_low, self.right
 
     def test_create_easement(self):
-        ts = ec.curve.TrackSection(self.start_straight, 500, 120)
+        ts = ec.section.TrackSection(self.start_straight, 500, 120)
         self.assertEqual(ts.easement_curve(0.0001).__dict__,
                          self.straight_high.easement_curve(0.0001).__dict__)
 
     def test_create_static(self):
-        ts = ec.curve.TrackSection(self.start_straight, 500, 120)
+        ts = ec.section.TrackSection(self.start_straight, 500, 120)
         ts.start.curvature = 0.0001
         self.straight_high.start.curvature = 0.0001
         self.assertEqual(ts.static_curve(math.pi/4).__dict__,

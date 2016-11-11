@@ -129,20 +129,20 @@ class LinearEquationBaseTests(unittest.TestCase):
     def test_exception_no_tuple(self):
         with self.assertRaisesRegex(TypeError, 'tuple of length 2'):
             b = ec.common.Bearing(0)
-            le = ec.common.LinearEquation(b, 0)
+            ec.common.LinearEquation(b, 0)
 
     def test_exception_wrong_value(self):
         with self.assertRaisesRegex(TypeError, 'tuple of length 2'):
             b = ec.common.Bearing(0)
-            le = ec.common.LinearEquation(b, None)
+            ec.common.LinearEquation(b, None)
 
     def test_exception_bearing_number(self):
         with self.assertRaisesRegex(AttributeError, 'Bearing object'):
-            le = ec.common.LinearEquation(1, (0, 0))
+            ec.common.LinearEquation(1, (0, 0))
 
     def test_exception_bearing_none(self):
         with self.assertRaisesRegex(AttributeError, 'Bearing object'):
-            le = ec.common.LinearEquation(None, (0, 0))
+            ec.common.LinearEquation(None, (0, 0))
 
     def test_le_bearing(self):
         b = ec.common.Bearing(90)
@@ -250,5 +250,4 @@ class LinearEquationIntersectTests(unittest.TestCase, CustomAssertions):
     def test_intersect_none_orthogonal(self):
         le0 = ec.common.LinearEquation(self.b[1], (10, -3))
         le1 = ec.common.LinearEquation(self.b[3], (-5, -2))
-        axes, intersect = ('x', 'z'), le0.intersect(le1)
         self.assertDataAlmostEqual(le0.intersect(le1), (3.36602540378, -6.83012701892))

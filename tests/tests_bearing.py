@@ -14,7 +14,7 @@ class BearingTests(unittest.TestCase):
 
     def test_exception_wrong_type(self):
         with self.assertRaisesRegex(ValueError, 'bearing needs to'):
-            tb = ec.common.Bearing("AA")
+            ec.common.Bearing("AA")
 
     def test_above_range_deg(self):
         tb = ec.common.Bearing(370)

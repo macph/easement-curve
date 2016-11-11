@@ -8,19 +8,20 @@ import unittest
 
 sys.path.insert(0, os.path.abspath('..'))
 import ec.common
-import ec.curve
+import ec.coord
+import ec.section
 from tests.tests_common import CustomAssertions
 
 
 class BaseTSTests(unittest.TestCase, CustomAssertions):
 
     def setUp(self):
-        self.curved_left = ec.curve.TrackCoord(
-            pos_x=31.875, pos_z=49.061, rotation=51.329, quad=ec.curve.Q.NW, curvature=1 / 600)
-        self.curved_right = ec.curve.TrackCoord(
-            pos_x=-30.678, pos_z=-17.147, rotation=5.787, quad=ec.curve.Q.NW, curvature=-1 / 600)
-        self.straight = ec.curve.TrackCoord(
-            pos_x=4.57, pos_z=39.724, rotation=-32.748, quad=ec.curve.Q.SE, curvature=0)
+        self.curved_left = ec.coord.TrackCoord(
+            pos_x=31.875, pos_z=49.061, rotation=51.329, quad=ec.coord.Q.NW, curvature=1 / 600)
+        self.curved_right = ec.coord.TrackCoord(
+            pos_x=-30.678, pos_z=-17.147, rotation=5.787, quad=ec.coord.Q.NW, curvature=-1 / 600)
+        self.straight = ec.coord.TrackCoord(
+            pos_x=4.57, pos_z=39.724, rotation=-32.748, quad=ec.coord.Q.SE, curvature=0)
         self.s, self.m = 120, 500
 
     def tearDown(self):
@@ -31,18 +32,18 @@ class TrackSectionTests(BaseTSTests):
 
     def test_exception_track_coord(self):
         with self.assertRaisesRegex(AttributeError, 'TrackCoord'):
-            ts = ec.curve.TrackSection(None, self.m, self.s)
+            ts = ec.section.TrackSection(None, self.m, self.s)
 
     def test_exception_minimum_radius(self):
-        with self.assertRaises(ec.curve.TrackException):
-            ts = ec.curve.TrackSection(self.curved_left, 800, self.s)
+        with self.assertRaises(ec.section.TrackException):
+            ts = ec.section.TrackSection(self.curved_left, 800, self.s)
 
     def test_curvature_attribute(self):
-        ts = ec.curve.TrackSection(self.curved_left, self.m, self.s)
+        ts = ec.section.TrackSection(self.curved_left, self.m, self.s)
         self.assertAlmostEqual(ts.start.curvature, 1/600)
 
     def test_speed_tolerance(self):
-        ts = ec.curve.TrackSection(self.curved_left, self.m, self.s)
+        ts = ec.section.TrackSection(self.curved_left, self.m, self.s)
         self.assertEqual(ts.speed_tolerance, 120)
 
 
@@ -50,7 +51,7 @@ class FresnelTests(BaseTSTests):
 
     def setUp(self):
         super(FresnelTests, self).setUp()
-        self.ts = ec.curve.TrackSection(self.curved_left, self.m, self.s)
+        self.ts = ec.section.TrackSection(self.curved_left, self.m, self.s)
         self.l = 80
 
     def tearDown(self):
@@ -95,14 +96,14 @@ class FresnelTests(BaseTSTests):
 class FindStaticRadiusTests(unittest.TestCase):
 
     def setUp(self):
-        self.start = ec.curve.TrackCoord(
-            pos_x=-29.794, pos_z=-41.463, rotation=10.202, quad=ec.curve.Q.SW, curvature=0)
-        self.left = ec.curve.TrackCoord(
-            pos_x=31.415, pos_z=154.380, rotation=24.511, quad=ec.curve.Q.SW, curvature=0)
-        self.right = ec.curve.TrackCoord(
-            pos_x=-19.177, pos_z=127.315, rotation=3.003, quad=ec.curve.Q.SE, curvature=0)
+        self.start = ec.coord.TrackCoord(
+            pos_x=-29.794, pos_z=-41.463, rotation=10.202, quad=ec.coord.Q.SW, curvature=0)
+        self.left = ec.coord.TrackCoord(
+            pos_x=31.415, pos_z=154.380, rotation=24.511, quad=ec.coord.Q.SW, curvature=0)
+        self.right = ec.coord.TrackCoord(
+            pos_x=-19.177, pos_z=127.315, rotation=3.003, quad=ec.coord.Q.SE, curvature=0)
         self.s, self.m = 120, 500
-        self.ts = ec.curve.TrackSection(self.start, self.m, self.s)
+        self.ts = ec.section.TrackSection(self.start, self.m, self.s)
 
     def tearDown(self):
         super(FindStaticRadiusTests, self).tearDown()
@@ -113,9 +114,9 @@ class FindStaticRadiusTests(unittest.TestCase):
             self.ts.get_static_radius(None)
 
     def test_already_on_line(self):
-        with self.assertRaisesRegex(ec.curve.TrackException, 'A curve cannot be'):
-            tc = ec.curve.TrackCoord(pos_x=-28.023, pos_z=-31.621, rotation=0,
-                                     quad=ec.curve.Q.NONE, curvature=0)
+        with self.assertRaisesRegex(ec.section.TrackException, 'A curve cannot be'):
+            tc = ec.coord.TrackCoord(pos_x=-28.023, pos_z=-31.621, rotation=0,
+                                     quad=ec.coord.Q.NONE, curvature=0)
             self.ts.get_static_radius(tc)
 
     def test_find_radius_right(self):
@@ -127,7 +128,7 @@ class FindStaticRadiusTests(unittest.TestCase):
         self.assertAlmostEqual(self.ts.start.curvature, -0.001359817930914901)
 
     def test_find_radius_right_opposite(self):
-        new_ts = ec.curve.TrackSection(self.right, self.m, self.s)
+        new_ts = ec.section.TrackSection(self.right, self.m, self.s)
         result = new_ts.get_static_radius(self.start)
         self.assertAlmostEqual(new_ts.start.curvature, -0.001359817930914901)
 
@@ -140,19 +141,19 @@ class FindStaticRadiusTests(unittest.TestCase):
         self.assertAlmostEqual(self.ts.start.curvature, 0.0012139237582865768)
 
     def test_find_radius_left_opposite(self):
-        new_ts = ec.curve.TrackSection(self.left, self.m, self.s)
+        new_ts = ec.section.TrackSection(self.left, self.m, self.s)
         result = new_ts.get_static_radius(self.start)
         self.assertAlmostEqual(new_ts.start.curvature, 0.0012140339764863358)
 
     def test_find_radius_axes_clockwise(self):
-        other = ec.curve.TrackCoord(pos_x=800, pos_z=0, rotation=90, quad=ec.curve.Q.NW)
-        self.ts.start = ec.curve.TrackCoord(pos_x=0, pos_z=800, rotation=0, quad=ec.curve.Q.NW)
+        other = ec.coord.TrackCoord(pos_x=800, pos_z=0, rotation=90, quad=ec.coord.Q.NW)
+        self.ts.start = ec.coord.TrackCoord(pos_x=0, pos_z=800, rotation=0, quad=ec.coord.Q.NW)
         self.ts.get_static_radius(other)
         self.assertAlmostEqual(self.ts.start.curvature, -1/800)
 
     def test_find_radius_axes_not_clockwise(self):
-        other = ec.curve.TrackCoord(pos_x=0, pos_z=800, rotation=0, quad=ec.curve.Q.SE)
-        self.ts.start = ec.curve.TrackCoord(pos_x=800, pos_z=0, rotation=90, quad=ec.curve.Q.SE)
+        other = ec.coord.TrackCoord(pos_x=0, pos_z=800, rotation=0, quad=ec.coord.Q.SE)
+        self.ts.start = ec.coord.TrackCoord(pos_x=800, pos_z=0, rotation=90, quad=ec.coord.Q.SE)
         self.ts.get_static_radius(other)
         self.assertAlmostEqual(self.ts.start.curvature, 1/800)
 
@@ -162,16 +163,16 @@ class CurveBaseTests(unittest.TestCase, CustomAssertions):
     def setUp(self):
         minimum, speed = 500, 120
 
-        straight = ec.curve.TrackCoord(
-            pos_x=5, pos_z=5, rotation=60, quad=ec.curve.Q.NE, curvature=0)
-        left = ec.curve.TrackCoord(
-            pos_x=-5, pos_z=5, rotation=30, quad=ec.curve.Q.SE, curvature=0.001)
-        right = ec.curve.TrackCoord(
-            pos_x=-5, pos_z=-5, rotation=60, quad=ec.curve.Q.NW, curvature=-0.001)
+        straight = ec.coord.TrackCoord(
+            pos_x=5, pos_z=5, rotation=60, quad=ec.coord.Q.NE, curvature=0)
+        left = ec.coord.TrackCoord(
+            pos_x=-5, pos_z=5, rotation=30, quad=ec.coord.Q.SE, curvature=0.001)
+        right = ec.coord.TrackCoord(
+            pos_x=-5, pos_z=-5, rotation=60, quad=ec.coord.Q.NW, curvature=-0.001)
 
-        self.straight = ec.curve.TrackSection(straight, minimum, speed)
-        self.left = ec.curve.TrackSection(left, minimum, speed)
-        self.right = ec.curve.TrackSection(right, minimum, speed)
+        self.straight = ec.section.TrackSection(straight, minimum, speed)
+        self.left = ec.section.TrackSection(left, minimum, speed)
+        self.right = ec.section.TrackSection(right, minimum, speed)
 
     def tearDown(self):
         del self.straight, self.left, self.right
@@ -180,7 +181,7 @@ class CurveBaseTests(unittest.TestCase, CustomAssertions):
 class EasementCurveTests(CurveBaseTests):
 
     def test_exception_minimum_radius(self):
-        with self.assertRaisesRegex(ec.curve.TrackException, 'must be at least'):
+        with self.assertRaisesRegex(ec.section.TrackException, 'must be at least'):
             self.straight.easement_curve(1/250)
 
     def test_exception_same_radius(self):
@@ -192,15 +193,15 @@ class EasementCurveTests(CurveBaseTests):
             self.left.easement_curve(-1/800)
 
     def test_easement_origin_to_left(self):
-        start = ec.curve.TrackCoord(0, 0, 0, ec.curve.Q.NE, curvature=0)
-        end = ec.curve.TrackSection(start, 500, 120).easement_curve(1/1000)
+        start = ec.coord.TrackCoord(0, 0, 0, ec.coord.Q.NE, curvature=0)
+        end = ec.section.TrackSection(start, 500, 120).easement_curve(1/1000)
         end_r = {'x': end.pos_x, 'z': end.pos_z, 'b': end.bearing.deg}
         end_e = {'x': -0.443, 'z': 51.579, 'b': 360-1.478}
         self.assertDataAlmostEqual(end_r, end_e, places=3)
 
     def test_easement_origin_to_right(self):
-        start = ec.curve.TrackCoord(0, 0, 0, ec.curve.Q.NE, curvature=0)
-        end = ec.curve.TrackSection(start, 500, 120).easement_curve(-1/1000)
+        start = ec.coord.TrackCoord(0, 0, 0, ec.coord.Q.NE, curvature=0)
+        end = ec.section.TrackSection(start, 500, 120).easement_curve(-1/1000)
         end_r = {'x': end.pos_x, 'z': end.pos_z, 'b': end.bearing.deg}
         end_e = {'x': 0.443, 'z': 51.579, 'b': 1.478}
         self.assertDataAlmostEqual(end_r, end_e, places=3)
@@ -245,7 +246,7 @@ class EasementCurveTests(CurveBaseTests):
 class StaticCurveTests(CurveBaseTests):
 
     def test_exception_straight(self):
-        with self.assertRaisesRegex(ec.curve.TrackException, 'track is already straight'):
+        with self.assertRaisesRegex(ec.section.TrackException, 'track is already straight'):
             self.straight.static_curve(1)
 
     def test_static_curve_no_angle(self):
