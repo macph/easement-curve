@@ -69,8 +69,7 @@ class MainWindow(ttk.Frame):
         self.radius, self.cw = tk.StringVar(), tk.StringVar()
         self.entries = {'1': EntryMethod1, '2': EntryMethod2}
         self.row = 3
-        self.current_entry = self.entries[self.method](
-            self, row=self.row)
+        self.current_entry = self.entries[self.method](self, row=self.row)
 
         # Message
         ttk.Style().configure("Red.TLabel", foreground="red")
@@ -151,7 +150,9 @@ class MainWindow(ttk.Frame):
                    ).grid(column=3, row=0, sticky=tk.E)
 
     def open_about(self, event=None):
-        """ Opens the About dialog. """
+        """ Opens the About dialog. If it has already been initialised the
+            dialog is deiconified.
+        """
         if self.about is not None:
             self.about.show()
         else:
@@ -344,18 +345,14 @@ class AboutDialog(tk.Toplevel):
 
     def __init__(self, parent):
         super(AboutDialog, self).__init__(parent)
-
-        # Positioning the window relative to the main window
-        offset = 30
-        x, y = parent.winfo_rootx(), parent.winfo_rooty()
-        self.geometry('+{x:d}+{y:d}'.format(x=x+offset, y=y+offset))
+        self.parent = parent
 
         # Setting up the window, should be transient (ie not full window)
         self.title('About')
         self.transient(parent)
         self.resizable(False, False)
-        # Switching focus to this window
-        self.focus_set()
+        self.move()    # Moving window relative to parent window
+        self.focus_set()    # Switching focus to this window
 
         # The window body
         self.container = ttk.Frame(self, padding="5 5 5 5")
@@ -386,10 +383,16 @@ class AboutDialog(tk.Toplevel):
         ttk.Button(self.container, text='Close', command=self.hide
                    ).grid(row=1, column=0, columnspan=2, sticky=tk.E)
 
+    def move(self, offset=30):
+        """ Moves this window to position relative to parent window. """
+        x, y = self.parent.winfo_rootx(), self.parent.winfo_rooty()
+        self.geometry('+{x:d}+{y:d}'.format(x=x+offset, y=y+offset))
+
     def hide(self, event=None):
         self.withdraw()
 
     def show(self, event=None):
+        self.move()
         self.deiconify()
 
 
