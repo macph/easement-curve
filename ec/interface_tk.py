@@ -11,13 +11,12 @@ from ec import coord, section, curve, __version__
 
 # TODO: Clean up the code and test??
 # TODO: Sort out the text.
-# TODO: Create an About dialog box.
 # TODO: Consider changing TreeView to a grid of Text widgets.
 
 
-def get_text_length(length, font='TkDefaultFont'):
+def text_length(length, font='TkDefaultFont'):
     """ Retrieves the length of a string defined by number of characters
-        in terms of pixels.
+        in pixels.
     """
     base_length = nametofont(font).measure('e' * 80)
     return round(base_length * length / 80)
@@ -39,9 +38,9 @@ class App(object):
         '1': ("Takes two straight tracks at different angles, and creates an "
               "easement curve with set radius of curvature connecting the two "
               "tracks."),
-        '2': ("Extends an easement curve onwards from a straight track to join"
-              " with another straight track. The optional pair of coordinates "
-              "on the first track is used to define radius of curvature - if "
+        '2': ("Extends an easement curve onwards from a track to join with "
+              "another straight track. The optional pair of coordinates on "
+              "the first track is used to define radius of curvature - if "
               "it is left empty the first track is assumed to be straight.")
     }
 
@@ -55,19 +54,21 @@ class App(object):
         self.parent.resizable(height=False, width=False)
 
         # Main frame
-        self.container = Frame(self.parent, padding="5 5 5 5")
+        padding = '{t} {t} {t} {t}'.format(t=text_length(1))
+        self.container = Frame(self.parent, padding=padding)
         self.container.grid(row=0, column=0)
 
         # Calc method select and description
+        self.sm_frame, self.about = None, None
         self.selected_method = StringVar()
         self.method_heading, self.method_description = None, None
         self.select_method_about(row=0)
         self.show_method_description(row=1)
 
         # Enter speed tolerance (in mph or km/h) and minimum radius
-        self.speed, self.dim = DoubleVar(), StringVar()
-        self.min_radius = IntVar()
-        self.select_sr(row=2)
+        self.sr_frame = None
+        self.speed, self.dim, self.min_radius = DoubleVar(), StringVar(), IntVar()
+        self.select_speed_radius(row=2)
 
         # Create lists of stringvars and grid for entering data
         self.line0, self.line1, self.line2 = \
@@ -80,6 +81,7 @@ class App(object):
 
         # Message
         Style().configure("Red.TLabel", foreground="red")
+        self.msg_frame = None
         self.msg = None
         self.message_actions(row=4)
 
@@ -88,7 +90,7 @@ class App(object):
         self.results(row=5)
 
         # Bindings
-        parent.bind('<Return>', self.calculate)
+        self.parent.bind('<Return>', self.calculate)
 
     @property
     def method(self):
@@ -117,45 +119,50 @@ class App(object):
     def kph(self, value):
         self._kph = value
 
-    def select_sr(self, row):
+    def select_speed_radius(self, row):
         """ LabelFrame widget with speed tolerance and minimum radius entries.
         """
-        st = LabelFrame(self.container, text="Curve setup", padding="0 0 0 8")
-        st.grid(column=0, row=row, sticky=(W, E))
+        self.sr_frame = LabelFrame(self.container, text="Curve setup",
+                                   padding="0 0 0 8")
+        self.sr_frame.grid(column=0, row=row, sticky=(W, E))
 
         options = ['mph', 'km/h']
-        Label(st, text="Speed tolerance ",
-              padding="4 0 0 0").grid(column=0, row=0)
-        speed = Entry(st, textvariable=self.speed, width=6)
-        speed.grid(column=1, row=0)
-        speed_dim = OptionMenu(st, self.dim, options[0], *options)
-        speed_dim.grid(column=2, row=0)
-        speed_dim.config(width=5)
+        Label(self.sr_frame, text="Speed tolerance ", padding="4 0 0 0"
+              ).grid(column=0, row=0)
+        Entry(self.sr_frame, textvariable=self.speed, width=6
+              ).grid(column=1, row=0)
+        option_dim = OptionMenu(self.sr_frame, self.dim, options[0], *options)
+        option_dim.config(width=5)
+        option_dim.grid(column=2, row=0)
 
-        Label(st, text="Minimum radius of curvature ").grid(column=3, row=0)
-        minimum_radius = Entry(st, textvariable=self.min_radius, width=6)
-        minimum_radius.grid(column=4, row=0)
-        Label(st, text="m", padding="4 0 0 0").grid(column=5, row=0)
+        Label(self.sr_frame, text="Minimum radius of curvature "
+              ).grid(column=3, row=0)
+        Entry(self.sr_frame, textvariable=self.min_radius, width=6
+              ).grid(column=4, row=0)
+        Label(self.sr_frame, text="m", padding="4 0 0 0").grid(column=5, row=0)
 
     def select_method_about(self, row):
         """ Widget for calculation method selection. as well as About button.
         """
-        sm = Frame(self.container, padding="6 0 0 0")
-        sm.grid(column=0, row=row, sticky=(W, E))
-        sm.columnconfigure(2, weight=1)
+        self.sm_frame = Frame(self.container, padding="6 0 0 0")
+        self.sm_frame.grid(column=0, row=row, sticky=(W, E))
+        self.sm_frame.columnconfigure(2, weight=1)
 
-        Label(sm, text="Select method ").grid(column=0, row=0)
+        Label(self.sm_frame, text="Select method ").grid(column=0, row=0)
 
         options = ['1', '2']
-        method_menu = OptionMenu(sm, self.selected_method, options[0],
-                                 *options, command=self.refresh_method)
-        method_menu.grid(column=1, row=0)
+        OptionMenu(self.sm_frame, self.selected_method, options[0], *options,
+                   command=self.refresh_method).grid(column=1, row=0)
 
-        about = Button(sm, text="About", command=self.open_about)
-        about.grid(column=3, row=0, sticky=E)
+        Button(self.sm_frame, text="About", command=self.open_about
+               ).grid(column=3, row=0, sticky=E)
 
     def open_about(self, event=None):
-        AboutWindow(self.parent)
+        """ Opens the About dialog. """
+        if self.about is not None:
+            self.about.show()
+        else:
+            self.about = AboutDialog(self.parent)
 
     def show_method_description(self, row):
         """ LabelFrame widget for displaying method description. """
@@ -166,38 +173,43 @@ class App(object):
         self.method_description = Label(self.method_heading,
                                         text=self.description[self.method])
         self.method_description.config(
-            width=82, wraplength=int(get_text_length(82)), padding="4 0 0 4")
+            width=82, wraplength=int(text_length(82)), padding="4 0 0 4")
         self.method_description.grid(sticky=(W, E))
 
     def refresh_method(self, event=None):
         """ Command to refresh method description and data entries depending
             on which method was selected.
         """
+        # Method description changed
         self.method_heading.config(text="Method {} description".format(self.method))
         self.method_description.config(text=self.description[self.method])
 
+        # Destroys current entry widget and create new
         self.current_entry.destroy()
         self.current_entry = self.entries[self.method](
             self.container, self, self.row)
+
+        # Lowers entry widget below message/actions to ensure correct tab order
+        if self.msg_frame is not None:
+            self.current_entry.lower(self.msg_frame)
 
     def message_actions(self, row):
         """ Row for message (all OK or errors in calculations) and Calculate/
             Clear buttons.
         """
-        ma = Frame(self.container, padding="0 4 0 4")
-        ma.grid(column=0, row=row, sticky=(W, E))
-        ma.columnconfigure(3, pad=4)
-        ma.columnconfigure(1, weight=1)
+        self.msg_frame = Frame(self.container, padding="0 4 0 4")
+        self.msg_frame.grid(column=0, row=row, sticky=(W, E))
+        self.msg_frame.columnconfigure(1, weight=1)
+        self.msg_frame.columnconfigure(3, pad=4)
 
-        self.msg = Label(ma, text='')
-        self.msg.config(width=56, wraplength=int(get_text_length(56)))
+        self.msg = Label(self.msg_frame, text='')
+        self.msg.config(width=56, wraplength=text_length(56))
         self.msg.grid(column=0, row=0, sticky=W)
 
-        calc = Button(ma, text="Calculate", command=self.calculate)
-        calc.grid(column=2, row=0, sticky=(N, E))
-
-        clear = Button(ma, text="Clear", command=self.clear)
-        clear.grid(column=3, row=0, sticky=(N, E))
+        Button(self.msg_frame, text="Calculate", command=self.calculate
+               ).grid(column=2, row=0, sticky=(N, E))
+        Button(self.msg_frame, text="Clear", command=self.clear
+               ).grid(column=3, row=0, sticky=(N, E))
 
     def refresh_message(self, message, colour='black'):
         """ Command to refresh the calculation message. """
@@ -332,6 +344,60 @@ class App(object):
                          pos_x, pos_z, rotation, quad))
 
         return data
+
+
+class AboutDialog(Toplevel):
+    """ Extra dialog for showing About info. """
+
+    def __init__(self, parent):
+        super(AboutDialog, self).__init__(parent)
+
+        # Positioning the window relative to the main window
+        offset = 30
+        x, y = parent.winfo_rootx(), parent.winfo_rooty()
+        self.geometry('+{x:d}+{y:d}'.format(x=x+offset, y=y+offset))
+
+        # Setting up the window, should be transient (ie not full window)
+        self.title('About')
+        self.transient(parent)
+        self.resizable(False, False)
+        # Switching focus to this window
+        self.focus_set()
+
+        # The window body
+        self.container = Frame(self, padding="5 5 5 5")
+        self.container.grid(row=0, column=0)
+        self.body()
+
+        # What happens when you do something
+        self.protocol('WM_DELETE_WINDOW', self.hide)
+        self.bind('<Escape>', self.hide)
+        self.bind('<Return>', self.hide)
+
+    def body(self):
+        # Creating logo image
+        logo = PhotoImage(file='resources/logo_256.png')
+        logo_label = Label(self.container, image=logo)
+        logo_label.grid(row=0, column=0)
+        logo_label.image = logo
+
+        # About text
+        py_version = '.'.join(str(i) for i in version_info[:3])
+        about_text = ('Easement curve calculator, version {ecv}\n'
+                      'Copyright Ewan Macpherson, 2016\n'
+                      'Python version {pyv}')
+        Label(self.container, text=about_text.format(ecv=__version__, pyv=py_version)
+              ).grid(row=0, column=1, sticky=W)
+
+        # Close button
+        Button(self.container, text='Close', command=self.hide
+               ).grid(row=1, column=0, columnspan=2, sticky=E)
+
+    def hide(self, event=None):
+        self.withdraw()
+
+    def show(self, event=None):
+        self.deiconify()
 
 
 class EntryM(LabelFrame, metaclass=ABCMeta):
@@ -472,12 +538,10 @@ class EntryMethod2(EntryM):
 
         track = curve.TrackCurve(curve=start_track, **self.args())
 
-        # Empty fields - ignore extra point and assume first track straight
+        # Check if first two fields are empty - if so, track is straight
         if all(k.get() == '' for k in self.controller.line0[:2]):
-            print('hi there.')
             return track.curve_fit_point(other=end_track)
         else:
-            print('nope')
             pre_track = self.get_coord(self.controller.line0)
             return track.curve_fit_point(other=end_track, add_point=pre_track)
 
@@ -493,7 +557,7 @@ class Result(Frame):
     def create_table(self):
         """ Initalises table. """
         tv = Treeview(self, height=5)
-        Style().configure('Treeview', rowheight=get_text_length(3.5))
+        Style().configure('Treeview', rowheight=text_length(3.5))
 
         columns = ('section', 'length', 'roc', 'pos_x',
                    'pos_z', 'rotation', 'quad')
@@ -512,7 +576,7 @@ class Result(Frame):
         for col in columns:
             c = columns_d[col]
             tv.heading(col, text=c[0], anchor='w')
-            tv.column(col, anchor=c[1], width=get_text_length(c[2]))
+            tv.column(col, anchor=c[1], width=text_length(c[2]))
 
         tv.grid(sticky=(N, S, W, E))
         self.treeview = tv
@@ -525,35 +589,6 @@ class Result(Frame):
     def clear_table(self):
         """ Deletes all data from table. """
         self.treeview.delete(*self.treeview.get_children())
-
-
-class AboutWindow(Toplevel):
-
-    def __init__(self, parent):
-        super(AboutWindow, self).__init__(parent)
-
-        # Positioning the window relative to the main window
-        offset = 30
-        x, y = parent.winfo_rootx(), parent.winfo_rooty()
-        self.geometry('+{x:d}+{y:d}'.format(x=x+offset, y=y+offset))
-
-        # Setting up the window
-        self.title('About')
-        self.transient(parent)
-        self.resizable(False, False)
-
-        self.container = Frame(self, padding="5 5 5 5")
-        self.container.grid(row=0, column=0)
-
-        text = ('Easement curve calculator, version {ecv}\n'
-                'Copyright Ewan Macpherson, 2016\n'
-                'Python version {pyv}')
-        about_text = Label(self.container, text=text.format(
-            ecv=__version__, pyv='.'.join(str(i) for i in version_info[:3])))
-        about_text.grid(row=0, column=1, sticky=W)
-
-        exit_button = Button(self.container, text='Exit', command=self.withdraw)
-        exit_button.grid(row=1, column=0, columnspan=2, sticky=E)
 
 
 def main():
