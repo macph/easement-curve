@@ -18,7 +18,7 @@ Let's get started with some examples of joining up tracks with easement curves.
 
 ## Joining two straight tracks with a specific radius of curvature
 
-Suppose we have two straight tracks, and we want to create a section with easement curves of radius of curvature 700 m to join them. The track rule we're using has a speed tolerance of 100 km/h and minimum radius of curvature 600 m.
+Suppose we have two straight tracks, and we want to create a section with easement curves of radius of curvature 900 m to join them. The track rule we're using has a speed tolerance of 60 mph and minimum radius of curvature 300 m.
 
 ![Straight tracks](images/guide_01.jpg)
 
