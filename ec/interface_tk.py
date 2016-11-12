@@ -10,10 +10,8 @@ import tkinter.ttk as ttk
 
 from ec import __version__, coord, section, curve
 
-# TODO: Clean up the code and test??
 # TODO: Sort out the text.
 # TODO: Consider changing TreeView to a grid of Text widgets.
-# TODO: Consider changing Q entry field to a ComboBox (readonly).
 
 
 def text_length(length, font='TkDefaultFont'):
@@ -22,11 +20,6 @@ def text_length(length, font='TkDefaultFont'):
     """
     base_length = tkfont.nametofont(font).measure('e' * 80)
     return round(base_length * length / 80)
-
-
-def multi_string_var(i=4):
-    """ Creates a list of multiple StringVar instances. """
-    return [tk.StringVar() for j in range(i)]
 
 
 class InterfaceException(Exception):
@@ -64,9 +57,10 @@ class MainWindow(ttk.Frame):
         self.speed, self.dim, self.min_radius = tk.DoubleVar(), tk.StringVar(), tk.IntVar()
         self.select_speed_radius(row=2)
 
+        def coord_stringvar(): return {j: tk.StringVar() for j in 'xzrq'}
         # Create lists of stringvars and grid for entering data
         self.line0, self.line1, self.line2 = \
-            multi_string_var(), multi_string_var(), multi_string_var()
+            coord_stringvar(), coord_stringvar(), coord_stringvar()
         self.radius, self.cw = tk.StringVar(), tk.StringVar()
         self.entries = {'1': EntryMethod1, '2': EntryMethod2}
         self.row = 3
@@ -368,6 +362,7 @@ class AboutDialog(tk.Toplevel):
         self.bind('<Return>', self.hide)
 
     def body(self):
+        # TODO: Get PyInstaller to bundle ico and image files properly
         # Creating logo image
         # logo = tk.PhotoImage(file='resources/logo_256.png')
         # logo_label = ttk.Label(self.container, image=logo)
@@ -407,6 +402,7 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
         self.config(text="Curve data", padding="0 0 0 10")
         self.grid(row=row, column=0, sticky=(tk.N, tk.W, tk.E))
 
+        # All rows and columns in grid
         for i in range(5):
             self.grid_columnconfigure(i, pad=4)
         for j in range(3):
@@ -424,17 +420,17 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
         """ Takes a list with 2 or 4 variables - X and Z positions, rotation
             and quad - and converts to a TrackCoord object.
         """
-        coordinates = [i.get() for i in data]
+        coordinates = {k: v.get() for k, v in data.items()}
         try:
-            if coordinates[3].upper() in ['NE', 'SE', 'SW', 'NW']:
-                rotation = float(coordinates[2])
-                quad = coord.Q[coordinates[3].upper()]
+            if coordinates['q'].upper() in ['NE', 'SE', 'SW', 'NW']:
+                rotation = float(coordinates['r'])
+                quad = coord.Q[coordinates['q'].upper()]
             else:
                 raise AttributeError
 
             dict_coord = {
-                'pos_x': float(coordinates[0]),
-                'pos_z': float(coordinates[1]),
+                'pos_x': float(coordinates['x']),
+                'pos_z': float(coordinates['z']),
                 'rotation': rotation,
                 'quad': quad,
                 'curvature': 0
@@ -457,24 +453,20 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
         pass
 
     def start_label(self, text, row, column=0):
-        ttk.Label(self, text=text, width=28).grid(row=row, column=column, sticky=tk.E)
+        ttk.Label(self, text=text, width=28
+                  ).grid(row=row, column=column, sticky=tk.E)
 
-    def coord_entries(self, variable, entries, row, column=1, width=8):
-        # If using 4 entries - last one should be ComboBox instead of Entry
-        if entries == 4:
-            entries -= 1
-            quad_option = True
-        else:
-            quad_option = False
+    def coord_entry(self, variable, row, column):
+        entry = ttk.Entry(self, textvariable=variable, width=8)
+        entry.grid(row=row, column=column, sticky=tk.W)
 
-        for i in range(entries):
-            ttk.Entry(self, textvariable=variable[i], width=width
-                      ).grid(row=row, column=i+column, sticky=tk.W)
-        if quad_option:
-            options = ['NE', 'SE', 'SW', 'NW']
-            quad = ttk.Combobox(self, textvariable=variable[-1])
-            quad.config(width=width-2, values=options, state='readonly')
-            quad.grid(row=row, column=entries+column, sticky=tk.W)
+    def coord_menu(self, variable, options, row, column, default=False):
+        menu = ttk.Combobox(self, textvariable=variable)
+        menu.config(width=6, values=options, state='readonly')
+        menu.grid(row=row, column=column, sticky=tk.W)
+        if default:
+            # Sets first item in options list as default value
+            menu.current(0)
 
     def end_label(self, text, row, column=5):
         ttk.Label(self, text=text).grid(row=row, column=column, sticky=tk.W)
@@ -487,24 +479,26 @@ class EntryMethod1(EntryM):
 
     def get_table(self):
         self.start_label("1st straight track", 0)
-        self.coord_entries(self.master.line1, 4, 0)
+        self.coord_entry(self.master.line1['x'], 0, 1)
+        self.coord_entry(self.master.line1['z'], 0, 2)
+        self.coord_entry(self.master.line1['r'], 0, 3)
+        self.coord_menu(self.master.line1['q'], ['NE', 'SE', 'SW', 'NW'], 0, 4)
         self.end_label("X, Z, R, Q", 0)
 
         self.start_label("2nd straight track", 1)
-        self.coord_entries(self.master.line2, 4, 1)
+        self.coord_entry(self.master.line2['x'], 1, 1)
+        self.coord_entry(self.master.line2['z'], 1, 2)
+        self.coord_entry(self.master.line2['r'], 1, 3)
+        self.coord_menu(self.master.line2['q'], ['NE', 'SE', 'SW', 'NW'], 1, 4)
         self.end_label("X, Z, R, Q", 1)
 
         self.start_label("Radius of curvature", 2)
-        ttk.Entry(self, textvariable=self.master.radius, width=8
-                  ).grid(row=2, column=1, sticky=tk.W)
-        ttk.Label(self, text="m").grid(row=2, column=2, sticky=tk.W)
+        self.coord_entry(self.master.radius, 2, 1)
+        self.end_label('m', 2, 2)
 
-        ttk.Label(self, text="direction", justify=tk.RIGHT).grid(row=2, column=3, sticky=tk.W)
-        options = ['N/A', 'CW', 'ACW']
-        clockwise = ttk.Combobox(self, textvariable=self.master.cw)
-        clockwise.config(width=6, values=options, state='readonly')
-        clockwise.current(0)
-        clockwise.grid(row=2, column=4, sticky=tk.W, columnspan=2)
+        ttk.Label(self, text="direction", justify=tk.RIGHT
+                  ).grid(row=2, column=3, sticky=tk.W)
+        self.coord_menu(self.master.cw, ['N/A', 'CW', 'ACW'], 2, 4, default=True)
 
     def get_result(self):
         start_track = self.get_coord(self.master.line1)
@@ -515,8 +509,7 @@ class EntryMethod1(EntryM):
             raise InterfaceException('Radius of curvature must be a number.')
 
         track = curve.TrackCurve(curve=start_track, **self.args())
-        dict_cw = {'CW': True, 'ACW': False}
-        clockwise = dict_cw.get(self.master.cw.get())
+        clockwise = {'CW': True, 'ACW': False}.get(self.master.cw.get())
 
         return track.curve_fit_radius(other=end_track, radius=curve_radius,
                                       clockwise=clockwise)
@@ -530,17 +523,24 @@ class EntryMethod2(EntryM):
 
     def get_table(self):
         self.start_label("Add. point on starting track", 0)
-        self.coord_entries(self.master.line0, 2, 0)
+        self.coord_entry(self.master.line0['x'], 0, 1)
+        self.coord_entry(self.master.line0['z'], 0, 2)
+        self.master.line0['r'].set('0')
+        self.master.line0['q'].set('NE')
         self.end_label("X, Z", 0)
-        self.master.line0[2].set('0')
-        self.master.line0[3].set('NE')
 
         self.start_label("Starting point on curved track", 1)
-        self.coord_entries(self.master.line1, 4, 1)
+        self.coord_entry(self.master.line1['x'], 1, 1)
+        self.coord_entry(self.master.line1['z'], 1, 2)
+        self.coord_entry(self.master.line1['r'], 1, 3)
+        self.coord_menu(self.master.line1['q'], ['NE', 'SE', 'SW', 'NW'], 1, 4)
         self.end_label("X, Z, R, Q", 1)
 
         self.start_label("Straight track to join", 2)
-        self.coord_entries(self.master.line2, 4, 2)
+        self.coord_entry(self.master.line2['x'], 2, 1)
+        self.coord_entry(self.master.line2['z'], 2, 2)
+        self.coord_entry(self.master.line2['r'], 2, 3)
+        self.coord_menu(self.master.line2['q'], ['NE', 'SE', 'SW', 'NW'], 2, 4)
         self.end_label("X, Z, R, Q", 2)
 
     def get_result(self):
@@ -550,7 +550,7 @@ class EntryMethod2(EntryM):
         track = curve.TrackCurve(curve=start_track, **self.args())
 
         # Check if first two fields are empty - if so, track is straight
-        if all(k.get() == '' for k in self.master.line0[:2]):
+        if all(self.master.line0[k].get() == '' for k in 'xz'):
             return track.curve_fit_point(other=end_track)
         else:
             pre_track = self.get_coord(self.master.line0)
@@ -572,13 +572,15 @@ class Result(ttk.Frame):
 
         columns = ('section', 'length', 'roc', 'pos_x',
                    'pos_z', 'rotation', 'quad')
-        columns_d = {'section': ('Curve section', 'w', 14),
-                     'length': ('Length', 'e', 9),
-                     'roc': ('Radius of curvature', 'w', 22),
-                     'pos_x': ('Position x', 'e', 11),
-                     'pos_z': ('Position z', 'e', 11),
-                     'rotation': ('Rotation', 'e', 10),
-                     'quad': ('Quad', 'w', 7)}
+        columns_d = {
+            'section': ('Curve section', 'w', 14),
+            'length': ('Length', 'e', 9),
+            'roc': ('Radius of curvature', 'w', 22),
+            'pos_x': ('Position x', 'e', 11),
+            'pos_z': ('Position z', 'e', 11),
+            'rotation': ('Rotation', 'e', 10),
+            'quad': ('Quad', 'w', 7)
+        }
 
         tv['columns'] = columns
         # Hides the first column
@@ -608,8 +610,7 @@ def main():
     root.resizable(height=False, width=False)
 
     padding = '{t} {t} {t} {t}'.format(t=text_length(1))
-    mw = MainWindow(root, padding=padding)
-    mw.grid(row=0, column=0)
+    MainWindow(root, padding=padding).grid(row=0, column=0)
 
     root.mainloop()
 
