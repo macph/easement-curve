@@ -8,11 +8,12 @@ import tkinter as tk
 import tkinter.font as tkfont
 import tkinter.ttk as ttk
 
-from ec import coord, section, curve, __version__
+from ec import __version__, coord, section, curve
 
 # TODO: Clean up the code and test??
 # TODO: Sort out the text.
 # TODO: Consider changing TreeView to a grid of Text widgets.
+# TODO: Consider changing Q entry field to a ComboBox (readonly).
 
 
 def text_length(length, font='TkDefaultFont'):
@@ -117,17 +118,19 @@ class MainWindow(ttk.Frame):
         self.sr_frame = ttk.LabelFrame(self, text="Curve setup",
                                        padding="0 0 0 8")
         self.sr_frame.grid(column=0, row=row, sticky=(tk.W, tk.E))
+        self.sr_frame.columnconfigure(2, pad=4)
 
         options = ['mph', 'km/h']
         ttk.Label(self.sr_frame, text="Speed tolerance ", padding="4 0 0 0"
                   ).grid(column=0, row=0)
         ttk.Entry(self.sr_frame, textvariable=self.speed, width=6
                   ).grid(column=1, row=0)
-        option_dim = ttk.OptionMenu(self.sr_frame, self.dim, options[0], *options)
-        option_dim.config(width=5)
+        option_dim = ttk.Combobox(self.sr_frame, textvariable=self.dim)
+        option_dim.config(width=5, values=options, state='readonly')
+        option_dim.current(0)
         option_dim.grid(column=2, row=0)
 
-        ttk.Label(self.sr_frame, text="Minimum radius of curvature "
+        ttk.Label(self.sr_frame, text="Minimum radius of curvature ", padding="8 0 0 0"
                   ).grid(column=3, row=0)
         ttk.Entry(self.sr_frame, textvariable=self.min_radius, width=6
                   ).grid(column=4, row=0)
@@ -366,10 +369,10 @@ class AboutDialog(tk.Toplevel):
 
     def body(self):
         # Creating logo image
-        logo = tk.PhotoImage(file='resources/logo_256.png')
-        logo_label = ttk.Label(self.container, image=logo)
-        logo_label.grid(row=0, column=0)
-        logo_label.image = logo
+        # logo = tk.PhotoImage(file='resources/logo_256.png')
+        # logo_label = ttk.Label(self.container, image=logo)
+        # logo_label.grid(row=0, column=0)
+        # logo_label.image = logo
 
         # About text
         py_version = '.'.join(str(i) for i in version_info[:3])
@@ -408,7 +411,6 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
             self.grid_columnconfigure(i, pad=4)
         for j in range(3):
             self.grid_rowconfigure(j, pad=4)
-        self.grid_columnconfigure(0, pad=4)
 
         self.master = parent
         self.get_table()
@@ -457,10 +459,22 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
     def start_label(self, text, row, column=0):
         ttk.Label(self, text=text, width=28).grid(row=row, column=column, sticky=tk.E)
 
-    def entry_boxes(self, variable, it, row, column=1, width=8):
-        for i in range(it):
+    def coord_entries(self, variable, entries, row, column=1, width=8):
+        # If using 4 entries - last one should be ComboBox instead of Entry
+        if entries == 4:
+            entries -= 1
+            quad_option = True
+        else:
+            quad_option = False
+
+        for i in range(entries):
             ttk.Entry(self, textvariable=variable[i], width=width
                       ).grid(row=row, column=i+column, sticky=tk.W)
+        if quad_option:
+            options = ['NE', 'SE', 'SW', 'NW']
+            quad = ttk.Combobox(self, textvariable=variable[-1])
+            quad.config(width=width-2, values=options, state='readonly')
+            quad.grid(row=row, column=entries+column, sticky=tk.W)
 
     def end_label(self, text, row, column=5):
         ttk.Label(self, text=text).grid(row=row, column=column, sticky=tk.W)
@@ -473,21 +487,24 @@ class EntryMethod1(EntryM):
 
     def get_table(self):
         self.start_label("1st straight track", 0)
-        self.entry_boxes(self.master.line1, 4, 0)
+        self.coord_entries(self.master.line1, 4, 0)
         self.end_label("X, Z, R, Q", 0)
 
         self.start_label("2nd straight track", 1)
-        self.entry_boxes(self.master.line2, 4, 1)
+        self.coord_entries(self.master.line2, 4, 1)
         self.end_label("X, Z, R, Q", 1)
 
         self.start_label("Radius of curvature", 2)
         ttk.Entry(self, textvariable=self.master.radius, width=8
                   ).grid(row=2, column=1, sticky=tk.W)
         ttk.Label(self, text="m").grid(row=2, column=2, sticky=tk.W)
-        ttk.Label(self, text="direction", justify=tk.RIGHT).grid(row=2, column=3, sticky=tk.E)
+
+        ttk.Label(self, text="direction", justify=tk.RIGHT).grid(row=2, column=3, sticky=tk.W)
         options = ['N/A', 'CW', 'ACW']
-        ttk.OptionMenu(self, self.master.cw, options[0], *options
-                       ).grid(row=2, column=4, sticky=tk.W, columnspan=2)
+        clockwise = ttk.Combobox(self, textvariable=self.master.cw)
+        clockwise.config(width=6, values=options, state='readonly')
+        clockwise.current(0)
+        clockwise.grid(row=2, column=4, sticky=tk.W, columnspan=2)
 
     def get_result(self):
         start_track = self.get_coord(self.master.line1)
@@ -513,17 +530,17 @@ class EntryMethod2(EntryM):
 
     def get_table(self):
         self.start_label("Add. point on starting track", 0)
-        self.entry_boxes(self.master.line0, 2, 0)
+        self.coord_entries(self.master.line0, 2, 0)
         self.end_label("X, Z", 0)
         self.master.line0[2].set('0')
         self.master.line0[3].set('NE')
 
         self.start_label("Starting point on curved track", 1)
-        self.entry_boxes(self.master.line1, 4, 1)
+        self.coord_entries(self.master.line1, 4, 1)
         self.end_label("X, Z, R, Q", 1)
 
         self.start_label("Straight track to join", 2)
-        self.entry_boxes(self.master.line2, 4, 2)
+        self.coord_entries(self.master.line2, 4, 2)
         self.end_label("X, Z, R, Q", 2)
 
     def get_result(self):

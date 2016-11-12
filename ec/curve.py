@@ -285,19 +285,16 @@ class TrackCurve(TrackSection):
                 if self.start.curvature != curvature:
                     # Usual EC -> Static -> EC setup
                     ec1 = self.ts_easement_curve(self.start, curvature)
-                    static = self.ts_static_curve(
-                        ec1, static_curve_angle)
+                    static = self.ts_static_curve(ec1, static_curve_angle)
                     ec2 = self.ts_easement_curve(static, 0)
+                    curve_data = [copy(s) for s in [self.start, ec1, static, ec2]]
 
                 else:
                     # easement_length & pre_angle is cancelled out
-                    ec1 = None
-                    static = self.ts_static_curve(
-                        self.start, static_curve_angle)
+                    static = self.ts_static_curve(self.start, static_curve_angle)
                     ec2 = self.ts_easement_curve(static, 0)
+                    curve_data = [copy(s) for s in [self.start, static, ec2]]
 
-                # Copying to ensure no changes
-                curve_data = [copy(s) for s in [self.start, ec1, static, ec2]]
                 end_point = (curve_data[-1].pos_x, curve_data[-1].pos_z)
 
                 if line_other.dist(end_point) < 10 ** (-places):
