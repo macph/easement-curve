@@ -221,7 +221,7 @@ class MainWindow(ttk.Frame):
         self.radius.set('')
         self.cw.set('N/A')
         for line in [self.line0, self.line1, self.line2]:
-            for entry in line:
+            for entry in line.values():
                 entry.set('')
 
     def calculate(self, event=None):
@@ -236,6 +236,7 @@ class MainWindow(ttk.Frame):
             self.kph = self.speed.get()
 
         try:
+            # TODO: Add another value to display message (eg longer than expected curve).
             result = self.current_entry.get_result()
 
         except AttributeError as err:
@@ -255,8 +256,7 @@ class MainWindow(ttk.Frame):
         else:
             self.refresh_message('All OK.')
 
-        table = self.display_data(result)
-        self.result.load_table(table)
+        self.result.load_table(self.display_data(result))
 
     @staticmethod
     def display_data(result):
@@ -478,18 +478,20 @@ class EntryMethod1(EntryM):
     """
 
     def get_table(self):
+        quads = ['NE', 'SE', 'SW', 'NW']
+
         self.start_label("1st straight track", 0)
         self.coord_entry(self.master.line1['x'], 0, 1)
         self.coord_entry(self.master.line1['z'], 0, 2)
         self.coord_entry(self.master.line1['r'], 0, 3)
-        self.coord_menu(self.master.line1['q'], ['NE', 'SE', 'SW', 'NW'], 0, 4)
+        self.coord_menu(self.master.line1['q'], quads, 0, 4)
         self.end_label("X, Z, R, Q", 0)
 
         self.start_label("2nd straight track", 1)
         self.coord_entry(self.master.line2['x'], 1, 1)
         self.coord_entry(self.master.line2['z'], 1, 2)
         self.coord_entry(self.master.line2['r'], 1, 3)
-        self.coord_menu(self.master.line2['q'], ['NE', 'SE', 'SW', 'NW'], 1, 4)
+        self.coord_menu(self.master.line2['q'], quads, 1, 4)
         self.end_label("X, Z, R, Q", 1)
 
         self.start_label("Radius of curvature", 2)
@@ -522,6 +524,8 @@ class EntryMethod2(EntryM):
     """
 
     def get_table(self):
+        quads = ['NE', 'SE', 'SW', 'NW']
+
         self.start_label("Add. point on starting track", 0)
         self.coord_entry(self.master.line0['x'], 0, 1)
         self.coord_entry(self.master.line0['z'], 0, 2)
@@ -533,14 +537,14 @@ class EntryMethod2(EntryM):
         self.coord_entry(self.master.line1['x'], 1, 1)
         self.coord_entry(self.master.line1['z'], 1, 2)
         self.coord_entry(self.master.line1['r'], 1, 3)
-        self.coord_menu(self.master.line1['q'], ['NE', 'SE', 'SW', 'NW'], 1, 4)
+        self.coord_menu(self.master.line1['q'], quads, 1, 4)
         self.end_label("X, Z, R, Q", 1)
 
         self.start_label("Straight track to join", 2)
         self.coord_entry(self.master.line2['x'], 2, 1)
         self.coord_entry(self.master.line2['z'], 2, 2)
         self.coord_entry(self.master.line2['r'], 2, 3)
-        self.coord_menu(self.master.line2['q'], ['NE', 'SE', 'SW', 'NW'], 2, 4)
+        self.coord_menu(self.master.line2['q'], quads, 2, 4)
         self.end_label("X, Z, R, Q", 2)
 
     def get_result(self):
