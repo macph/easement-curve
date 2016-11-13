@@ -22,24 +22,23 @@ Suppose we have two straight tracks, and we want to create a section with easeme
 
 ![Two straight tracks](images/ig01.jpg)
 
-As we need a specific radius of curvature and it is not important where the easement curve starts, we select method 1.
-
-We double click on the first track - it doesn't matter where exactly. The coordinates rolls out.
+As we need a specific radius of curvature, we select method 1. We double click on the first track - it doesn't matter where exactly. The coordinates rolls out.
 
 ![Clicking on track](images/ig02_1.jpg)
+
 ![Coordinate rollout](images/ig02_2.jpg)
 
-We want the *x* and *z* coordinates and `(569.349, 662.636)`the *y*-axis rotation `73.085`, and enter them.
+We want the *x* and *z* coordinates `(569.349, 662.636)` and the *y*-axis rotation `73.085`, and enter them.
 
 > :information_source: It's easy to get confused but in TS2016 the *x* and *z* axes are the horizontal, while the *y* axis is the vertical axis. This is in contrast to the standard Cartesian coordinates where *x* and *y* are the horizontal axes.
 
-We also need the quadrant - the *y*-axis rotation values does not cover the full 360 degrees range. Move the camera down to the track and look down the track in the direction you want to build the curve in. The compass says it's about `75` between `N` and `E`, therefore the quadrant is `NE`. We enter that in.
+We also need the quadrant. Move the camera down to the track and look down the track in the direction you want to build the curve in. The compass says it's about 75 degrees between N and E, therefore the quadrant is `NE`. We enter that in.
 
 ![Looking down track](images/ig03.jpg)
 
-> :information_source: The *y*-axis rotation value is in the [-90, 90] range only - half that needed for the full 360 degrees range. See the [reference](reference.md) for more on this.
+> :information_source: The *y*-axis rotation value is in the [-90, 90] range only, which is half that needed for the full 360 degrees range. Including the quadrant solves this problem. See the [reference](reference.md) for more on this.
 
-> :warning: Take care with tracks aligned towards `W` (*y*-axis rotation -90) or `E` (*y*-axis rotation 90), as the rotation values are very similar on either side of the axis.
+> :warning: Take care with tracks aligned towards W (*y*-axis rotation -90) or E (*y*-axis rotation 90), as the rotation values are very similar on either side of the axis.
 
 We do the same thing for the second track - again, it doesn't matter where exactly on the track. The coordinates are `(681.732, 700.001)` and the rotation is `69.511`.
 
@@ -49,11 +48,11 @@ Finally, we enter the radius of curvature `3200` m. The direction can be left as
 
 > :information_source: Picking CW or ACW will forces the curve to be aligned in that direction, even if it's a much longer curve and crosses itself. By leaving it at N/A by default the curve will be aligned in the shortest direction. 
 
-Now, we need to recreate the curve in Train Simulator. The start point is at `(508.235, 644.051)`, so we find that point on the first track by double clicking it until the coordinates rollout gives us the correct values.
+We need to recreate the curve in Train Simulator. The start point is at `(508.235, 644.051)`, so we find that point on the first track by double clicking it until the coordinates rollout gives us the correct values.
 
 ![Coordinate found](images/ig05.jpg)
 
-Looking straight down at the gizmo, we move the cursor to the gizmo's centre and use the cut tool to split the track. The extranenous section is deleted.
+Looking straight down at the gizmo, we use the cut tool exactly where the gizmo's centre is. The extranenous section is deleted.
 
 ![Cutting track](images/ig06.jpg)
 
@@ -61,7 +60,7 @@ We extend an easement curve from that point to radius of curvature `3200.0`,
 
 ![New easement curve](images/ig07.jpg)
 
-and create another curve of constant radius of curvature, making sure it is longer than needed (so we can cut it in the right place).
+and create another curve of constant radius of curvature, ie a static curve, and making sure it is longer than needed (so we can cut it in the right place).
 
 ![Extending curve](images/ig08.jpg)
 
@@ -75,10 +74,7 @@ Finally, we extend another easement curve, straightening it out to join the seco
 
 ![Last section](images/ig10.jpg)
 
-Assuming the coordinates are correct, it should weld without any problems! Delete the extra section and weld it again.
-
-![Welded](images/ig11_1.jpg)
-![Done](images/ig11_2.jpg)
+Assuming the coordinates are correct, it should weld without any problems!
 
 ## Extending a track to join another straight track
 
