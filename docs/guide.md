@@ -10,7 +10,7 @@
 Starting up the GUI gives you this:
 
 - There are two methods of calculating easement curves - you can select them with the `Select method` menu. Below is a short description of what each method does.
-- Then there is the speed tolerance and minimum radius. The speed tolerance determines how long the easement curves are, and it scales linearly - if you double the speed tolerance the length between specific radii of curvature is also doubled. The minimum radius of curvature sets an upper limit on the curvature.
+- Then there is the speed tolerance and minimum radius. The speed tolerance (which can either be in mph or km/h) determines how long the easement curves are, and it scales linearly - if you double the speed tolerance the length between specific radii of curvature is also doubled. The minimum radius of curvature sets an upper limit on the curvature.
 - The `Clear` button clears away all the fields in the 'Curve data' section. The `Calculate` button does what it says on the tin.
 - At the bottom is the table which gives you the easement curve coordinates you need to recreate the curve in Train Simulator.
 
@@ -22,19 +22,23 @@ Suppose we have two straight tracks, and we want to create a section with easeme
 
 ![Straight tracks](images/guide_01.jpg)
 
-Since we need a specific radius of curvature and it doesn't matter where the easement curve starts, we select method 1.
+As we need a specific radius of curvature and it is not important where the easement curve starts, we select method 1.
 
 We double click on the first track - it doesn't matter where exactly. The coordinates rolls out.
 
 ![Coordinates rollout](images/guide_02.jpg)
 
-We want the `x` and `z` coordinates and the `y`-axis rotation, and enter them.
+We want the *x* and *z* coordinates and the *y*-axis rotation, and enter them.
 
-We also need the quadrant - the `y`-axis rotation values does not cover the full 360 degrees range. Move the camera down to the track and look down the track in the direction you want to build the curve in. The compass says it's about `000` between `N` and `E`, therefore the quadrant is `NE`. We enter that in.
+> :information_source: It's easy to get confused but in TS2016 the *x* and *z* axes are the horizontal, while the *y* axis is the vertical axis. This is in contrast to the standard Cartesian coordinates where *x* and *y* are the horizontal axes.
+
+We also need the quadrant - the *y*-axis rotation values does not cover the full 360 degrees range. Move the camera down to the track and look down the track in the direction you want to build the curve in. The compass says it's about `000` between `N` and `E`, therefore the quadrant is `NE`. We enter that in.
 
 ![Looking down track](images/guide_03.jpg)
 
-> :warning: Take care with tracks aligned towards W (`y`-axis rotation -90) or E (`y`-axis rotation 90), as the rotation values are very similar on either side of the axis.
+> :information_source: The *y*-axis rotation value is in the [-90, 90] range only - half that needed for the full 360 degrees range. See the [reference](docs/reference.md) for more on this.
+
+> :warning: Take care with tracks aligned towards `W` (*y*-axis rotation -90) or `E` (*y*-axis rotation 90), as the rotation values are very similar on either side of the axis.
 
 We do the same thing for the second track - again, it doesn't matter where exactly on the track.
 
@@ -42,7 +46,7 @@ We do the same thing for the second track - again, it doesn't matter where exact
 
 Finally, we enter the radius of curvature `3200` m. The direction can be left as `N/A`, as we're only interested in the shortest curve. Clicking `Calculate` gives us the results.
 
-> :information_source: Picking CW or ACW will forces the curve to be aligned in that direction, even if it's a much longer cure and crosses itself. By leaving it at N/A by default the curve will be aligned in the shortest direction. 
+> :information_source: Picking CW or ACW will forces the curve to be aligned in that direction, even if it's a much longer curve and crosses itself. By leaving it at N/A by default the curve will be aligned in the shortest direction. 
 
 Now, we need to recreate the curve in Train Simulator. The start point is at `(000, 000)`, so we find that point on the first track by double clicking it until the coordinates rollout gives us the correct values.
 
@@ -55,11 +59,11 @@ We extend an easement curve from that point to radius of curvature `3200.0`, and
 ![New easement curve](images/guide_06.jpg)
 ![Extending curve](images/guide_07.jpg)
 
-We use the alignment of the static curve to find the end point of the static curve - just keep double clicking until the coordinates show `0.000` for the `y`-axis rotation. We cut the curve at that point, as before.
+We find the end point of the static curve by looking for the right coordinates - just keep double clicking until the coordinates show `0.000` for the *x*-axis coordinate. We cut the curve at that point, as before.
 
 ![Coordinate found](images/guide_08.jpg)
 
-> :information_source: If the radius of curvature is small you can find the correct place to cut the track by looking at the `y`-axis rotation value - but as 3,200 m is quite large the `x` and `z` position values are more accurate.
+> :information_source: If the radius of curvature is small you can find the correct place to cut the track by looking for the  *y*-axis rotation value - but as 3,200 m is quite large the *x* and *z* position values are more accurate.
 
 Finally, we extend another easement curve, straightening it out to join the second straight track. Assuming the coordinates are correct, it should weld without any problems!
 

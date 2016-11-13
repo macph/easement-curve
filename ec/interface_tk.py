@@ -58,12 +58,11 @@ class MainWindow(ttk.Frame):
         self.select_speed_radius(row=2)
 
         def coord_stringvar(): return {j: tk.StringVar() for j in 'xzrq'}
-        # Create lists of stringvars and grid for entering data
+        # Create dicts of stringvars and grid for entering data
         self.line0, self.line1, self.line2 = \
             coord_stringvar(), coord_stringvar(), coord_stringvar()
-        self.radius, self.cw = tk.StringVar(), tk.StringVar()
+        self.radius, self.cw, self.row = tk.StringVar(), tk.StringVar(), 3
         self.entries = {'1': EntryMethod1, '2': EntryMethod2}
-        self.row = 3
         self.current_entry = self.entries[self.method](self, row=self.row)
 
         # Message
