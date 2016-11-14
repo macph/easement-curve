@@ -46,7 +46,7 @@ We do the same thing for the second track - again, it doesn't matter where exact
 
 Finally, we enter the radius of curvature `3200` m. The direction can be left as `N/A`, as we're only interested in the shortest curve. Clicking `Calculate` gives us the results.
 
-> :information_source: Picking CW or ACW will forces the curve to be aligned in that direction, even if it's a much longer curve and crosses itself. By leaving it at N/A by default the curve will be aligned in the shortest direction. 
+> :information_source: Picking CW or ACW will force the curve to be aligned in that direction, even if it's a much longer curve and crosses itself. By leaving it at N/A by default the curve will be aligned in the shortest direction. 
 
 We need to recreate the curve in Train Simulator. The start point is at `(508.235, 644.051)`, so we find that point on the first track by double clicking it until the coordinates rollout gives us the correct values.
 
@@ -84,13 +84,15 @@ Suppose we want to extend an curved track to join with a straight track with eas
 
 ![Layout](images/ig21.jpg)
 
-This time, it is important where the starting coordinate is. We hover the cursor just outside the end of the bounding box for the track loft - the yellow boundary should be visible. Double clicking gives us the coordinates right at the end of the track. We enter these coordinates on the second line.
+This time, it is important where the starting coordinate is. We hover the cursor just outside the end of the bounding box for the track loft - the yellow boundary should still be visible. Double clicking gives us the coordinates right at the end of the track. We enter these coordinates on the second line.
 
 ![Starting point](images/ig22.jpg)
 
-For the second set of coordinates, we double click on any other point on the curved track that's not too close, and enter the coordinates.
+For the second set of coordinates, we double click on another point on the curved track that's not too close, and enter the coordinates.
 
 ![Second point](images/ig23.jpg)
+
+> :information_source: It doesn't matter where the second pair of coordinates is, just as long as it's on the same track section with the same radius of curvature. If you're starting on a easement curve you can extend a static curve with the easement tool and pick a pair of coordinates before deleting the curve - it will work either side of the starting point.
 
 Finally, we enter the coordinates of the straight track - it doesn't matter where exactly on the track.
 
@@ -98,11 +100,11 @@ Finally, we enter the coordinates of the straight track - it doesn't matter wher
 
 Clicking `Calculate` gives us the results.
 
-Since we've already defined a start point, we can start with extending the easement curve to radius of curvature `000.0`.
+Since we've already defined a start point, we can start with extending the easement curve to radius of curvature `844.4` m.
 
 ![Extending easement track](images/ig25.jpg)
 
-Following the rest of the instructions as in the last section should result in us joining up with the second track.
+Following the rest of the instructions as with the first example should result in us joining up with the second track.
 
 ![Finished](images/ig26.jpg)
 
