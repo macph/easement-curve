@@ -80,18 +80,31 @@ Assuming the coordinates are correct, it should weld without any problems!
 
 The second method calculates easement curves starting at a specific point, not just on straight track but also curved track, as long as the curved track is in the same direction as the curve that joins them up. As the radius of curvature shown by Train Simulator for a track is only accurate to 1 decimal place, the tool uses an additional pair of coordinates to acquire a more accurate radius of curvature for the starting track. If the starting track is straight, the additional pair of coordinates can be left blank.
 
-Suppose we want to extend an curved track to join with a straight track with easement curves, using the same track rule:
+Suppose we want to extend an curved track to join with a straight track with easement curves, using a track rule with 60 mph speed tolerance and minimum radius 400 m:
+
+![Layout](images/ig21.jpg)
 
 This time, it is important where the starting coordinate is. We hover the cursor just outside the end of the bounding box for the track loft - the yellow boundary should be visible. Double clicking gives us the coordinates right at the end of the track. We enter these coordinates on the second line.
 
+![Starting point](images/ig22.jpg)
+
 For the second set of coordinates, we double click on any other point on the curved track that's not too close, and enter the coordinates.
+
+![Second point](images/ig23.jpg)
 
 Finally, we enter the coordinates of the straight track - it doesn't matter where exactly on the track.
 
+![Straight track](images/ig24.jpg)
+
 Clicking `Calculate` gives us the results.
 
-Since we've already defined a start point, we can start with extending the easement curve to radius of curvature `000.0`. Following the rest of the instructions as in the last section should result in us joining up with the second track.
+Since we've already defined a start point, we can start with extending the easement curve to radius of curvature `000.0`.
 
+![Extending easement track](images/ig25.jpg)
+
+Following the rest of the instructions as in the last section should result in us joining up with the second track.
+
+![Finished](images/ig26.jpg)
 
 ## Other ways of implementing the curve data
 
