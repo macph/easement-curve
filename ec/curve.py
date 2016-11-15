@@ -8,7 +8,7 @@ from ec.common import Bearing, LinearEquation
 from ec.section import TrackSection
 
 
-class CurveException(Exception):
+class CurveError(Exception):
     pass
 
 
@@ -37,7 +37,7 @@ class TrackCurve(TrackSection):
         """
         # Checks how the 2nd track is aligned wrt the 1st
         if self.start.bearing.nearly_equal(other.bearing):
-            raise CurveException('Tracks 1 and 2 must not be parallel.')
+            raise CurveError('Tracks 1 and 2 must not be parallel.')
 
         elif (self.start.bearing - other.bearing).rad == math.pi:
             # The two tracks are in opposite directions
@@ -48,14 +48,14 @@ class TrackCurve(TrackSection):
                           start_point[1] + math.cos(self.start.bearing.rad))
 
             if start_line.dist((other.pos_x, other.pos_z)) == 0:
-                raise CurveException('The other track is on the same alignment'
-                                     ' as the starting track.')
+                raise CurveError('The other track is on the same alignment'
+                                 ' as the starting track.')
             diff_b = Bearing(math.pi, rad=True)
             cw = start_line.same_side((other.pos_x, other.pos_z), right_side)
             if apply_cw and cw is not self.clockwise:
-                raise CurveException('The starting track is curved away from '
-                                     'the other track - cannot make a suitable'
-                                     ' alignment.')
+                raise CurveError('The starting track is curved away from the '
+                                 'other track - cannot make a suitable '
+                                 'alignment.')
 
         elif (self.start.bearing - other.bearing).rad > \
                 (other.bearing - self.start.bearing).rad:
@@ -82,7 +82,7 @@ class TrackCurve(TrackSection):
         """
 
         if self.start.bearing.nearly_equal(other.bearing):
-            raise CurveException('Tracks 1 and 2 must not be parallel.')
+            raise CurveError('Tracks 1 and 2 must not be parallel.')
         elif (self.start.bearing - other.bearing).rad == math.pi:
             # Difference 180 deg
             return False
@@ -102,22 +102,22 @@ class TrackCurve(TrackSection):
             radius of curvature that fits the two straight tracks.
         """
         if radius < self.minimum_radius:
-            raise CurveException(
+            raise CurveError(
                 'Radius {0} must be greater than the minimum radius of '
                 'curvature.'.format(radius))
 
         try:
             if other.curvature != 0 or self.start.curvature != 0:
-                raise CurveException('Both tracks must be straight.')
+                raise CurveError('Both tracks must be straight.')
 
             if self.start.bearing.nearly_equal(other.bearing):
-                raise CurveException('Tracks 1 and 2 must not be parallel.')
+                raise CurveError('Tracks 1 and 2 must not be parallel.')
             elif self.start.bearing.nearly_equal(other.bearing.flip()):
                 # Can't fit curve of specific radius to two parallel tracks -
                 # 1) only one valid radius value, 2) can be placed anywhere
                 # along tracks.
-                raise CurveException('This method does not work with tracks '
-                                     'parallel in opposite directions.')
+                raise CurveError('This method does not work with tracks '
+                                 'parallel in opposite directions.')
 
         except AttributeError as err:
             raise AttributeError('Tracks 1 and 2 need to be TrackCoord '
@@ -129,14 +129,14 @@ class TrackCurve(TrackSection):
         curvature = -1 / radius if self.clockwise else 1 / radius
 
         # Finds length of easement curve and adjusts angle diff of static curve
-        easement_length = self.get_length(curvature)
-        static_curve_angle = diff_angle.rad - 2 * self.get_angle(easement_length)
+        easement_length = self.easement_length(curvature)
+        static_curve_angle = diff_angle.rad - 2 * self.easement_angle(easement_length)
         if static_curve_angle < 0:
             # Angle diff from two easement curves bigger than angle between
             # the two straight tracks; can't fit them in
-            raise CurveException(
-                "The easement curves are too long to fit within the curve; "
-                "consider increasing the radius of curvature.")
+            raise CurveError(
+                'The easement curves are too long to fit within the curve; '
+                'consider increasing the radius of curvature.')
 
         # Constructs the 3 sections of curve
         ec1 = self.ts_easement_curve(self.start, curvature)
@@ -177,7 +177,7 @@ class TrackCurve(TrackSection):
                 curve = self.curve_fit_radius(other=other, radius=roc,
                                               clockwise=clockwise)
 
-            except CurveException as err:
+            except CurveError as err:
                 if 'The easement curves are too long' in str(err):
                     n_floor = roc
                 else:
@@ -203,15 +203,15 @@ class TrackCurve(TrackSection):
                     roc *= 2
             else:
                 # Floor should have been set with first iteration
-                raise CurveException('The required radius of curvature for '
-                                     'static curve of length {} is too small.'
-                                     ''.format(length))
+                raise CurveError('The required radius of curvature for static '
+                                 'curve of length {} is too small.'
+                                 ''.format(length))
 
         # Loop runs out of iterations
         else:
-            raise CurveException(
-                "A suitable alignment was not found after {0} iterations. "
-                "".format(iterations))
+            raise CurveError(
+                'A suitable alignment was not found after {0} iterations. '
+                ''.format(iterations))
 
     def curve_fit_point(self, other, add_point=None, places=4, iterations=100):
         """ Extends a curve with easement sections from a point on a track,
@@ -224,9 +224,9 @@ class TrackCurve(TrackSection):
         """
         try:
             if other.curvature != 0:
-                raise CurveException('The end track must be straight.')
+                raise CurveError('The end track must be straight.')
             if self.start.bearing.nearly_equal(other.bearing):
-                raise CurveException('Tracks 1 and 2 must not be parallel.')
+                raise CurveError('Tracks 1 and 2 must not be parallel.')
 
         except AttributeError as err:
             raise AttributeError('Tracks 1 and 2 need to be TrackCoord '
@@ -244,8 +244,8 @@ class TrackCurve(TrackSection):
             self.clockwise = self.start.curvature < 0
             diff_angle = self.find_diff_angle(other, True)
             if diff_angle.rad > math.pi:
-                raise CurveException('The curved track is not aligned in the '
-                                     'same direction as the other track.')
+                raise CurveError('The curved track is not aligned in the '
+                                 'same direction as the other track.')
 
         else:
             diff_angle = self.find_diff_angle(other)
@@ -267,15 +267,15 @@ class TrackCurve(TrackSection):
         # If starting curvature is not zero, adjust diff_angle to take into
         # account 'negative' section of easement curve
         if self.start.curvature != 0:
-            pre_angle = self.get_angle(self.get_length(self.start.curvature))
+            pre_angle = self.easement_angle(self.easement_length(self.start.curvature))
         else:
             pre_angle = 0
 
         # Ensuring it runs in a loop with a limited number of iterations
         for j in range(iterations):
-            easement_length = self.get_length(curvature)
-            static_curve_angle = diff_angle.rad - self.get_angle(easement_length) \
-                - abs(self.get_angle(easement_length) - pre_angle)
+            easement_length = self.easement_length(curvature)
+            static_curve_angle = diff_angle.rad - self.easement_angle(easement_length) \
+                - abs(self.easement_angle(easement_length) - pre_angle)
 
             if static_curve_angle < 0:
                 # RoC too small; set a floor and repeat loop
@@ -312,12 +312,12 @@ class TrackCurve(TrackSection):
                 # Zero length of static curve but still overshot - won't work
                 elif not line_other.same_side(start_point, end_point) \
                         and static_curve_angle < 10 ** -3:
-                    raise CurveException(
-                        "The starting point is too close to the second track "
-                        "for this curve - try moving the start point away.")
+                    raise CurveError(
+                        'The starting point is too close to the second track '
+                        'for this curve - try moving the start point away.')
 
                 else:
-                    raise ValueError("Something went wrong here - dist",
+                    raise ValueError('Something went wrong here - dist',
                                      line_other.dist(end_point))
 
             if n_floor is not None:
@@ -329,12 +329,12 @@ class TrackCurve(TrackSection):
                     curvature *= 1/2
             else:
                 # Floor should have been set with first iteration
-                raise CurveException(
-                    "Start point is too close to the straight track such that "
-                    "the required RoC is smaller than the minimum.")
+                raise CurveError(
+                    'Start point is too close to the straight track such that '
+                    'the required RoC is smaller than the minimum.')
 
         # Loop runs out of iterations
         else:
-            raise CurveException(
-                "A suitable alignment was not found after {0} iterations. "
-                "".format(iterations))
+            raise CurveError(
+                'A suitable alignment was not found after {0} iterations. '
+                ''.format(iterations))
