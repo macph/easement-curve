@@ -7,7 +7,7 @@ from ec.coord import Q, TrackCoord
 from ec.common import Bearing, transform, LinearEquation
 
 
-class TrackError(Exception):
+class TrackException(Exception):
     pass
 
 
@@ -27,21 +27,21 @@ class TrackSection(object):
 
         try:
             if self.minimum_radius <= 0:
-                raise TrackError('The minimum radius of curvature must '
-                                 'be a positive non-zero number.')
+                raise TrackException("The minimum radius of curvature must "
+                                     "be a positive non-zero number.")
             if abs(self.start.curvature) > 1 / self.minimum_radius:
-                raise TrackError('Radius must be equal or greater than '
-                                 'the minimum radius of curvature.')
+                raise TrackException("Radius must be equal or greater than "
+                                     "the minimum radius of curvature.")
 
         except AttributeError as err:
-            raise AttributeError('TrackCoord object required.') from err
+            raise AttributeError("TrackCoord object required.") from err
 
     def factor(self):
         """ Normalisation factor as used in the Fresnel integrals. """
         return (self.speed_tolerance / 200) ** 3 \
             * self.n_length * self.n_radius
 
-    def fresnel(self, length):
+    def get_fresnel(self, length):
         """ Calculates the polynomials for the easement curves, which are
             based on the Taylor series for the Fresnel integrals used for the
             Euler spiral, and normalised - each variable t is multiplied by
@@ -49,42 +49,42 @@ class TrackSection(object):
             z-axis: C(L) with 2 terms; x-axis: S(L) with 1 term
         """
         if self.clockwise is None:
-            raise AttributeError('The clockwise attribute has not been set'
-                                 'yet.')
+            raise AttributeError("The clockwise attribute has not been set"
+                                 "yet.")
 
         a, t = 1 / math.sqrt(2*self.factor()), length
         x, z = a**2*t**3 / 3, t - a**4*t**5 / 10
 
         return (-x, z) if not self.clockwise else (x, z)
 
-    def easement_angle(self, length):
+    def get_angle(self, length):
         """ Returns the tangential angle of the easement curve at a length
             from the origin. The angle is between the curve at that particular
             point and the z-axis, and is in radians.
         """
         if self.clockwise is None:
-            raise AttributeError('The clockwise attribute has not been set'
-                                 'yet.')
+            raise AttributeError("The clockwise attribute has not been set"
+                                 "yet.")
 
         a, t = 1 / math.sqrt(2 * self.factor()), length
-        # Derivatives of the polynomials from fresnel()
+        # Derivatives of the polynomials from get_fresnel()
         xp, zp = a**2*t**2, 1 - a**4*t**4 / 2
 
         return math.acos(zp / math.hypot(xp, zp))
 
-    def easement_curvature(self, length):
+    def get_curvature(self, length):
         """ Returns the signed curvature at a length on the easement curve
             from the origin. It is the inverse of the radius of curvature.
             Calculates curvature by using the normalisation factor.
         """
         if self.clockwise is None:
-            raise AttributeError('The clockwise attribute has not been set'
-                                 'yet.')
+            raise AttributeError("The clockwise attribute has not been set"
+                                 "yet.")
 
         curvature = length / self.factor()
         return -curvature if self.clockwise else curvature
 
-    def easement_length(self, curvature):
+    def get_length(self, curvature):
         """ Uses the normalisation factor to find the length of easement curve
             starting with zero curvature and ending with a set curvature.
         """
@@ -102,24 +102,22 @@ class TrackSection(object):
         try:
             end_point = (add.pos_x, add.pos_z)
         except AttributeError as err:
-            raise AttributeError('The other coord needs to be an TrackCoord '
-                                 'object.') from err
+            raise AttributeError("The other coord needs to be an TrackCoord "
+                                 "object.") from err
 
         dist_align = align.dist(end_point)
         if 0 <= dist_align < 0.0005:
-            raise TrackError('A curve cannot be formed from a pair of '
-                             'coordinates already on the same line.')
+            raise TrackException("A curve cannot be formed from a pair of "
+                                 "coordinates already on the same line.")
 
         chord_length = math.hypot(self.start.pos_x - add.pos_x,
                                   self.start.pos_z - add.pos_z)
-        # Triangle with chord and two tangents is an isoceles triangle;
-        # diff bearing is double that of interior angle
+        # Triangle with chord and two tangents is an isoceles triangle; diff bearing is double that of interior angle
         diff_angle = 2 * math.asin(dist_align / chord_length)
         roc = chord_length / (2 * math.sin(diff_angle/2))
 
         if apply_result:
-            # Create a vector to right of alignment line and check whether
-            # other point is on same side
+            # Create a vector to right of alignment line and check whether other point is on same side
             perpendicular = self.start.bearing + Bearing(math.pi/2, rad=True)
             right_vector = (self.start.pos_x + math.sin(perpendicular.rad),
                             self.start.pos_z + math.cos(perpendicular.rad))
@@ -130,20 +128,21 @@ class TrackSection(object):
             return roc
 
     def easement_curve(self, end_curv):
-        """ Creates the easement curve based on the curvature at end of curve
-            and outputs a TrackCoord object.
+        """ Creates the easement curve based on the length, radius of curvature
+            or tangential angle at end of curve and outputs a TrackCoord
+            object.
         """
         if abs(end_curv) > 1 / self.minimum_radius:
-            raise TrackError(
-                'Ending radius of curvature must be at least {0},'
-                'the minimum RoC.'.format(self.minimum_radius))
+            raise TrackException(
+                "Ending radius of curvature must be at least {0},"
+                "the minimum RoC.".format(self.minimum_radius))
 
         start_curv = self.start.curvature
         # Checking if curvature are aligned correctly for both start and end
         if start_curv == end_curv:
             raise ValueError(
-                'The ending curvature given is the same as the starting '
-                'curvature.')
+                "The ending curvature given is the same as the starting "
+                "curvature.")
         elif start_curv == 0:
             self.clockwise = True if end_curv < 0 else False
         elif start_curv < 0 and end_curv <= 0:
@@ -152,8 +151,8 @@ class TrackSection(object):
             self.clockwise = False
         else:
             raise ValueError(
-                'Starting and ending curvature must both be >= 0 or <= 0. '
-                'Start: {0}, End: {1}'.format(start_curv, end_curv))
+                "Starting and ending curvature must both be >= 0 or <= 0. "
+                "Start: {0}, End: {1}".format(start_curv, end_curv))
 
         # Checks whether parametric equations need to be reversed
         if abs(start_curv) > abs(end_curv):
@@ -165,17 +164,17 @@ class TrackSection(object):
         # Calculates the length of easement curves from curvature 0
         # Flip the curvature as well if needed
         m = 1 if not reverse else -1
-        start_length = self.easement_length(m * start_curv)
-        end_length = self.easement_length(m * end_curv)
+        start_length = self.get_length(m * start_curv)
+        end_length = self.get_length(m * end_curv)
         curve_length = abs(start_length - end_length)
 
         # Find angles and positions
-        x0, z0 = self.fresnel(start_length)
-        x1, z1 = self.fresnel(end_length)
+        x0, z0 = self.get_fresnel(start_length)
+        x1, z1 = self.get_fresnel(end_length)
         xs, zs = self.start.pos_x, self.start.pos_z
 
-        r0 = Bearing(self.easement_angle(start_length), rad=True)
-        r1 = Bearing(self.easement_angle(end_length), rad=True)
+        r0 = Bearing(self.get_angle(start_length), rad=True)
+        r1 = Bearing(self.get_angle(end_length), rad=True)
         rs = self.start.bearing
 
         # Adjusting alignment of curves
@@ -201,8 +200,8 @@ class TrackSection(object):
             on the difference in bearing given.
         """
         if self.start.curvature == 0:
-            raise TrackError('Angle cannot be specified if the track is '
-                             'already straight.')
+            raise TrackException("Can't specify an angle if the track is "
+                                 "already straight.")
         else:
             t = angle_diff
             length = t / abs(self.start.curvature)
@@ -214,7 +213,6 @@ class TrackSection(object):
         r = Bearing(t, rad=True)
         x, r = (-x, -r) if not self.clockwise else (x, r)
 
-        # Moving curve to starting coordinates
         xs, zs, rs = self.start.pos_x, self.start.pos_z, self.start.bearing
         tx, tz = transform(a=(x, z), r=rs, c=(xs, zs))
         ry = rs + r
@@ -229,8 +227,8 @@ class TrackSection(object):
             TrackCoord object.
         """
         if self.start.curvature != 0:
-            raise TrackError('The starting curvature must be zero to '
-                             'create a straight line.')
+            raise TrackException("The starting curvature must be zero to "
+                                 "create a straight line.")
 
         line = LinearEquation(self.start.bearing,
                               (self.start.pos_x, self.start.pos_z))

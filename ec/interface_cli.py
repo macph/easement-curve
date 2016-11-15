@@ -54,27 +54,27 @@ class Interface(object):
             speed_value, speed_dim = find_speed.group(1), find_speed.group(2)
             self.minimum_radius = float(find_speed.group(3))
         except ValueError:
-            raise InterfaceException('Minimum radius must be a positive '
-                                     'number.')
+            raise InterfaceException("Minimum radius must be a positive "
+                                     "number.")
         except AttributeError:
             raise InterfaceException("Must be in format '100 mph 600'.")
 
         try:
             if speed_dim.upper() == 'MPH':
                 self.mph = float(speed_value)
-                str_speed = '{0} {1}'.format(self.mph, 'mph')
+                str_speed = "{0} {1}".format(self.mph, 'mph')
             elif speed_dim.upper() in ['KPH', 'KMH', 'KM/H']:
                 self.kph = float(speed_value)
-                str_speed = '{0} {1}'.format(self.kph, 'km/h')
+                str_speed = "{0} {1}".format(self.kph, 'km/h')
             else:
-                raise InterfaceException('The dimension given is incorrect - '
-                                         'must be mph, kph or km/h.')
+                raise InterfaceException("The dimension given is incorrect - "
+                                         "must be mph, kph or km/h.")
         except ValueError:
-            raise InterfaceException('Speed tolerance must be a positive '
-                                     'number.')
+            raise InterfaceException("Speed tolerance must be a positive "
+                                     "number.")
 
-        print('\nSpeed tolerance set as {0} and minimum radius {1} m.'
-              ''.format(str_speed, self.minimum_radius))
+        print("\nSpeed tolerance set as {0} and minimum radius {1} m."
+              "".format(str_speed, self.minimum_radius))
 
     @property
     def mph(self):
@@ -94,21 +94,21 @@ class Interface(object):
 
     def run(self):
         os.system('cls')
-        print('', 'Easement curve calculator, version {0}'.format(__version__), '',
+        print("", "Easement curve calculator, version {0}".format(__version__), "",
               sep='\n')
         # Get minimum radius and tolerance
         print("Start with the speed tolerance and minimum radius of curvature "
               "for the curves\nyou want to calculate, like for example "
               "'80 mph 500' or '40 kph 200'.\n")
         while True:
-            input_sm = self.get_input('Enter speed & minimum radius > ')
+            input_sm = self.get_input("Enter speed & minimum radius > ")
             try:
                 if input_sm is None:
                     continue
                 else:
                     self.speed_radius = input_sm
             except InterfaceException as err:
-                print('Values are invalid.', err)
+                print("Values are invalid.", err)
                 continue
             else:
                 break
@@ -116,7 +116,7 @@ class Interface(object):
         # Now can receive main input
         print("Enter 'help' to view docs or 'quit'/'exit' to quit.")
         while True:
-            input_data = self.get_input('\nEnter curve data > ')
+            input_data = self.get_input("\nEnter curve data > ")
 
             if input_data is None:
                 continue
@@ -125,7 +125,7 @@ class Interface(object):
                 try:
                     self.speed_radius = input_data
                 except InterfaceException as err:
-                    print('Values are invalid.', err)
+                    print("Values are invalid.", err)
                     continue
 
             elif self.re_method_1.match(input_data):
@@ -170,8 +170,8 @@ class Interface(object):
         curve_args = {'speed': self.kph, 'minimum': self.minimum_radius}
         try:
             if method == 1:
-                print('Method 1 picked with speed tolerance {0:.1f} mph / '
-                      '{1:.1f} kph.\n'.format(self.mph, self.kph))
+                print("Method 1 picked with speed tolerance {0:.1f} mph / "
+                      "{1:.1f} kph.\n".format(self.mph, self.kph))
 
                 find_data = self.re_method_1.match(data)
                 start_track = self.get_coord(find_data.group(1))
@@ -183,8 +183,8 @@ class Interface(object):
                     other=end_track, radius=self.curve_radius)
 
             elif method == 2:
-                print('Method 2 picked with speed tolerance {0:.1f} mph / '
-                      '{1:.1f} kph.\n'.format(self.mph, self.kph))
+                print("Method 2 picked with speed tolerance {0:.1f} mph / "
+                      "{1:.1f} kph.\n".format(self.mph, self.kph))
 
                 find_data = self.re_method_2.match(data)
                 start_track = self.get_coord(find_data.group(1))
@@ -194,8 +194,8 @@ class Interface(object):
                 result = track.curve_fit_point(other=end_track)
 
             elif method == 3:
-                print('Method 3 picked with speed tolerance {0:.1f} mph / '
-                      '{1:.1f} kph.\n'.format(self.mph, self.kph))
+                print("Method 3 picked with speed tolerance {0:.1f} mph / "
+                      "{1:.1f} kph.\n".format(self.mph, self.kph))
 
                 find_data = self.re_method_3.match(data)
                 pre_track = self.get_coord(find_data.group(1))
@@ -206,16 +206,16 @@ class Interface(object):
                 result = track.curve_fit_point(other=end_track, add_point=pre_track)
 
             else:
-                raise InterfaceException('An invalid method was used')
+                raise InterfaceException("An invalid method was used")
 
-        except coord.CoordError as err:
-            print('Coordinate error:', err, sep='\n')
+        except coord.CoordException as err:
+            print("Coordinate error:", err, sep='\n')
             return
-        except section.TrackError as err:
-            print('Track section error:', err, sep='\n')
+        except section.TrackException as err:
+            print("Track section error:", err, sep='\n')
             return
-        except curve.CurveError as err:
-            print('Curve calculation error:', err, sep='\n')
+        except curve.CurveException as err:
+            print("Curve calculation error:", err, sep='\n')
             return
 
         print(self.print_curve_data(result), '\n')
@@ -249,8 +249,8 @@ class Interface(object):
             }
 
         except AttributeError:
-            raise InterfaceException('The coordinates must be valid integers/'
-                                     'floats with a quadrant specified.')
+            raise InterfaceException("The coordinates must be valid integers/"
+                                     "floats with a quadrant specified.")
 
         return coord.TrackCoord(**dict_coord)
 
@@ -298,8 +298,8 @@ class Interface(object):
                         ts.org_radius, ts.org_clockwise, ts.clockwise.lower())
                 else:
                     raise Exception(
-                        'Something went wrong here - org curvature {0} and '
-                        'curvature {1}'.format(ts.org_curvature, ts.curvature))
+                        "Something went wrong here - org curvature {0} and "
+                        "curvature {1}".format(ts.org_curvature, ts.curvature))
 
             # Setting curve names
             if i == 0 and ts.org_type is None:

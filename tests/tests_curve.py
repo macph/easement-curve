@@ -76,7 +76,7 @@ class BaseTCTests(unittest.TestCase, CustomAssertions):
 class DiffAngleTests(BaseTCTests):
 
     def test_exception_parallel(self):
-        with self.assertRaisesRegex(ec.curve.CurveError, 'must not be parallel'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'must not be parallel'):
             self.straight_high.find_diff_angle(self.start_straight)
 
     def test_diff_left(self):
@@ -118,7 +118,7 @@ class AlignmentTests(BaseTCTests):
 
     def test_exception_parallel(self):
         self.end_reverse_left.bearing = self.end_reverse_left.bearing.flip()
-        with self.assertRaisesRegex(ec.curve.CurveError, 'must not be parallel'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'must not be parallel'):
             self.straight_high.check_start_alignment(self.end_reverse_left)
 
     def test_alignment_left(self):
@@ -143,7 +143,7 @@ class AlignmentTests(BaseTCTests):
 class CurveFitRadiusTests(BaseTCTests):
 
     def test_exception_curve_radius_minimum_radius(self):
-        with self.assertRaisesRegex(ec.curve.CurveError, 'Radius 350 must be greater'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'Radius 350 must be greater'):
             self.straight_high.curve_fit_radius(self.end_left, 350)
 
     def test_exception_curve_radius_wrong_object(self):
@@ -151,15 +151,15 @@ class CurveFitRadiusTests(BaseTCTests):
             self.straight_high.curve_fit_radius(None, 600)
 
     def test_exception_curve_radius_cannot_fit(self):
-        with self.assertRaisesRegex(ec.curve.CurveError, 'The easement curves are too long'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'The easement curves are too long'):
             self.straight_high.curve_fit_radius(self.end_low_angle, 500)
 
     def test_exception_curve_radius_curved(self):
-        with self.assertRaisesRegex(ec.curve.CurveError, 'Both tracks must be straight'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'Both tracks must be straight'):
             self.right.curve_fit_radius(self.end_left, 500)
 
     def test_exception_curve_radius_reverse(self):
-        with self.assertRaisesRegex(ec.curve.CurveError, 'This method does not work'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'This method does not work'):
             self.straight_high.curve_fit_radius(self.end_reverse_left, 500)
 
     def test_curve_assert_radius(self):
@@ -190,7 +190,7 @@ class CurveFitRadiusTests(BaseTCTests):
 class CurveFitLengthTests(BaseTCTests):
 
     def test_exception_curve_radius_minimum_radius(self):
-        with self.assertRaisesRegex(ec.curve.CurveError, 'The required radius of curvature'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'The required radius of curvature'):
             self.straight_high.curve_fit_length(self.end_far_left, 100, False)
 
     def test_exception_curve_radius_wrong_object(self):
@@ -198,11 +198,11 @@ class CurveFitLengthTests(BaseTCTests):
             self.straight_high.curve_fit_length(None, 600)
 
     def test_exception_curve_radius_curved(self):
-        with self.assertRaisesRegex(ec.curve.CurveError, 'Both tracks must be straight'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'Both tracks must be straight'):
             self.right.curve_fit_length(self.end_left, 200)
 
     def test_exception_curve_radius_reverse(self):
-        with self.assertRaisesRegex(ec.curve.CurveError, 'This method does not work'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'This method does not work'):
             self.straight_high.curve_fit_length(self.end_reverse_left, 500)
 
     def test_curve_assert_length(self):
@@ -229,12 +229,12 @@ class CurveFitLengthTests(BaseTCTests):
 class CurveFitPointTests(BaseTCTests):
 
     def test_exception_curve_point_end_curved(self):
-        with self.assertRaisesRegex(ec.curve.CurveError, 'end track must be straight'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'end track must be straight'):
             self.straight_high.curve_fit_point(self.start_curved)
 
     def test_exception_curve_point_parallel(self):
         self.end_reverse_left.bearing = self.end_reverse_left.bearing.flip()
-        with self.assertRaisesRegex(ec.curve.CurveError, 'must not be parallel'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'must not be parallel'):
             self.straight_high.curve_fit_point(self.end_reverse_left)
 
     def test_exception_curve_point_wrong_object(self):
@@ -242,12 +242,12 @@ class CurveFitPointTests(BaseTCTests):
             self.straight_high.curve_fit_point(None)
 
     def test_exception_curve_point_too_close(self):
-        with self.assertRaisesRegex(ec.curve.CurveError, 'is too close'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'is too close'):
             self.straight_high.curve_fit_point(self.end_reverse_left)
 
     def test_exception_curve_point_curved_right_opposite(self):
         self.right.get_static_radius(self.start_curved_add)
-        with self.assertRaisesRegex(ec.curve.CurveError, 'not aligned'):
+        with self.assertRaisesRegex(ec.curve.CurveException, 'not aligned'):
             self.right.curve_fit_point(self.end_left)
 
     def test_curve_point_left(self):

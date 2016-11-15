@@ -23,7 +23,7 @@ def transform(a, r, b=(0, 0), c=None):
         new_x = c[x] + (a[x] - b[x]) * math.cos(t) + (a[y] - b[y]) * math.sin(t)
         new_y = c[y] - (a[x] - b[x]) * math.sin(t) + (a[y] - b[y]) * math.cos(t)
     except AttributeError:
-        raise AttributeError('a, b, c must be tuples of length 2.')
+        raise AttributeError("a, b, c must be tuples of length 2.")
     return new_x, new_y
 
 
@@ -41,8 +41,8 @@ class Bearing(object):
                 self.deg = float(angle)
 
         except (TypeError, ValueError) as err:
-            raise ValueError('The bearing needs to be either integer or'
-                             'float.', err)
+            raise ValueError("The bearing needs to be either integer or"
+                             "float.", err)
 
     @property
     def deg(self):
@@ -187,7 +187,7 @@ class LinearEquation(object):
         """ Finds the point at where the two lines intersect."""
         try:
             if self.b == other.b or self.b == (other.b+math.pi) % (2*math.pi):
-                raise ValueError('The two lines cannot be parallel.')
+                raise ValueError("The two lines cannot be parallel.")
         except AttributeError as err:
             raise AttributeError("'other' must also be a LinearEquation "
                                  "object.") from err

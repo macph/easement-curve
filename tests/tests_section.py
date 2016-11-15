@@ -35,7 +35,7 @@ class TrackSectionTests(BaseTSTests):
             ts = ec.section.TrackSection(None, self.m, self.s)
 
     def test_exception_minimum_radius(self):
-        with self.assertRaises(ec.section.TrackError):
+        with self.assertRaises(ec.section.TrackException):
             ts = ec.section.TrackSection(self.curved_left, 800, self.s)
 
     def test_curvature_attribute(self):
@@ -60,37 +60,37 @@ class FresnelTests(BaseTSTests):
 
     def test_exception_clockwise_none(self):
         with self.assertRaisesRegex(AttributeError, 'clockwise'):
-            self.ts.fresnel(self.l)
+            self.ts.get_fresnel(self.l)
 
     def test_clockwise_result(self):
         self.ts.clockwise = True
-        r1 = self.ts.fresnel(self.l)
+        r1 = self.ts.get_fresnel(self.l)
         self.ts.clockwise = False
-        r2 = self.ts.fresnel(self.l)
+        r2 = self.ts.get_fresnel(self.l)
         r2 = [-r2[0], r2[1]]
         self.assertEqual(tuple(r1), tuple(r2))
 
     def test_fresnel_values(self):
         self.ts.clockwise = True
         values = {'x': 1.6543235518558268, 'z': 79.96921115283997}
-        result = self.ts.fresnel(self.l)
+        result = self.ts.get_fresnel(self.l)
         self.assertDataAlmostEqual(values, dict(zip(('x', 'z'), result)))
 
     def test_angle_clockwise(self):
         self.ts.clockwise = True
-        self.assertTrue(self.ts.easement_angle(self.l), 0.06207833753494783)
+        self.assertTrue(self.ts.get_angle(self.l), 0.06207833753494783)
 
     def test_curvature_clockwise(self):
         self.ts.clockwise = True
-        self.assertTrue(self.ts.easement_curvature(self.l), -0.00155096470004343)
+        self.assertTrue(self.ts.get_curvature(self.l), -0.00155096470004343)
 
     def test_curvature_not_clockwise(self):
         self.ts.clockwise = False
-        self.assertTrue(self.ts.easement_curvature(self.l), 0.00155096470004343)
+        self.assertTrue(self.ts.get_curvature(self.l), 0.00155096470004343)
 
     def test_length(self):
         self.ts.clockwise = True
-        self.assertTrue(self.ts.easement_length(1 / 750), 68.7744)
+        self.assertTrue(self.ts.get_length(1/750), 68.7744)
 
 
 class FindStaticRadiusTests(unittest.TestCase):
@@ -114,7 +114,7 @@ class FindStaticRadiusTests(unittest.TestCase):
             self.ts.get_static_radius(None)
 
     def test_already_on_line(self):
-        with self.assertRaisesRegex(ec.section.TrackError, 'A curve cannot be'):
+        with self.assertRaisesRegex(ec.section.TrackException, 'A curve cannot be'):
             tc = ec.coord.TrackCoord(pos_x=-28.023, pos_z=-31.621, rotation=0,
                                      quad=ec.coord.Q.NONE, curvature=0)
             self.ts.get_static_radius(tc)
@@ -181,7 +181,7 @@ class CurveBaseTests(unittest.TestCase, CustomAssertions):
 class EasementCurveTests(CurveBaseTests):
 
     def test_exception_minimum_radius(self):
-        with self.assertRaisesRegex(ec.section.TrackError, 'must be at least'):
+        with self.assertRaisesRegex(ec.section.TrackException, 'must be at least'):
             self.straight.easement_curve(1/250)
 
     def test_exception_same_radius(self):
@@ -246,7 +246,7 @@ class EasementCurveTests(CurveBaseTests):
 class StaticCurveTests(CurveBaseTests):
 
     def test_exception_straight(self):
-        with self.assertRaisesRegex(ec.section.TrackError, 'track is already straight'):
+        with self.assertRaisesRegex(ec.section.TrackException, 'track is already straight'):
             self.straight.static_curve(1)
 
     def test_static_curve_no_angle(self):
