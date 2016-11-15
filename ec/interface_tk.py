@@ -14,6 +14,7 @@ from ec import __version__, coord, section, curve
 # TODO: Add gettext support.
 # TODO: Save defaults (eg km/h set and saved for next startup).
 # TODO: Consider adding speed tolerance profiles.
+# TODO: Consider changing data variables to be independent of method chosen.
 
 
 def text_length(length, font='TkDefaultFont'):
@@ -406,7 +407,7 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
         # All rows and columns in grid
         for i in range(5):
             self.grid_columnconfigure(i, pad=4)
-        for j in range(3):
+        for j in range(4):
             self.grid_rowconfigure(j, pad=4)
 
         self.master = parent
@@ -453,8 +454,14 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
         """ Takes entries and calculates the result. """
         pass
 
+    def header_row(self):
+        ttk.Label(self, text='Pos X').grid(row=0, column=1, sticky=tk.W)
+        ttk.Label(self, text='Pos Z').grid(row=0, column=2, sticky=tk.W)
+        ttk.Label(self, text='Rotation').grid(row=0, column=3, sticky=tk.W)
+        ttk.Label(self, text='Quad').grid(row=0, column=4, sticky=tk.W)
+
     def start_label(self, text, row, column=0):
-        ttk.Label(self, text=text, width=28
+        ttk.Label(self, text=text, width=32
                   ).grid(row=row, column=column, sticky=tk.E)
 
     def coord_entry(self, variable, row, column):
@@ -469,10 +476,6 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
             # Sets first item in options list as default value
             menu.current(0)
 
-    def end_label(self, text, row, column=5):
-        ttk.Label(self, text=text).grid(row=row, column=column, sticky=tk.W)
-
-
 # TODO: Consider putting keys on top instead of X, Z, R, Q to right
 # TODO: Consider changing TreeView to a grid of Text widgets.
 
@@ -485,27 +488,29 @@ class EntryMethod1(EntryM):
     def get_table(self):
         quads = ['NE', 'SE', 'SW', 'NW']
 
-        self.start_label('1st straight track', 0)
-        self.coord_entry(self.master.line1['x'], 0, 1)
-        self.coord_entry(self.master.line1['z'], 0, 2)
-        self.coord_entry(self.master.line1['r'], 0, 3)
-        self.coord_menu(self.master.line1['q'], quads, 0, 4)
-        self.end_label('X, Z, R, Q', 0)
+        self.header_row()
 
-        self.start_label('2nd straight track', 1)
-        self.coord_entry(self.master.line2['x'], 1, 1)
-        self.coord_entry(self.master.line2['z'], 1, 2)
-        self.coord_entry(self.master.line2['r'], 1, 3)
-        self.coord_menu(self.master.line2['q'], quads, 1, 4)
-        self.end_label('X, Z, R, Q', 1)
+        self.start_label('1st straight track', 1)
+        self.coord_entry(self.master.line1['x'], 1, 1)
+        self.coord_entry(self.master.line1['z'], 1, 2)
+        self.coord_entry(self.master.line1['r'], 1, 3)
+        self.coord_menu(self.master.line1['q'], quads, 1, 4)
 
-        self.start_label('Radius of curvature', 2)
-        self.coord_entry(self.master.radius, 2, 1)
-        self.end_label('m', 2, 2)
+        self.start_label('2nd straight track', 2)
+        self.coord_entry(self.master.line2['x'], 2, 1)
+        self.coord_entry(self.master.line2['z'], 2, 2)
+        self.coord_entry(self.master.line2['r'], 2, 3)
+        self.coord_menu(self.master.line2['q'], quads, 2, 4)
+
+        self.start_label('Radius of curvature', 3)
+        self.coord_entry(self.master.radius, 3, 1)
+        ttk.Label(self, text='m').grid(row=3, column=2, sticky=tk.W)
 
         ttk.Label(self, text='direction', justify=tk.RIGHT
-                  ).grid(row=2, column=3, sticky=tk.W)
-        self.coord_menu(self.master.cw, ['N/A', 'CW', 'ACW'], 2, 4, default=True)
+                  ).grid(row=3, column=3, sticky=tk.W)
+        self.coord_menu(self.master.cw, ['N/A', 'CW', 'ACW'], 3, 4, default=True)
+
+        self.rowconfigure(3, pad=12)
 
     def get_result(self):
         start_track = self.get_coord(self.master.line1)
@@ -531,26 +536,25 @@ class EntryMethod2(EntryM):
     def get_table(self):
         quads = ['NE', 'SE', 'SW', 'NW']
 
-        self.start_label('Add. point on starting track', 0)
-        self.coord_entry(self.master.line0['x'], 0, 1)
-        self.coord_entry(self.master.line0['z'], 0, 2)
+        self.header_row()
+
+        self.start_label('Additional point on starting track', 1)
+        self.coord_entry(self.master.line0['x'], 1, 1)
+        self.coord_entry(self.master.line0['z'], 1, 2)
         self.master.line0['r'].set('0')
         self.master.line0['q'].set('NE')
-        self.end_label('X, Z', 0)
 
-        self.start_label('Starting point on curved track', 1)
-        self.coord_entry(self.master.line1['x'], 1, 1)
-        self.coord_entry(self.master.line1['z'], 1, 2)
-        self.coord_entry(self.master.line1['r'], 1, 3)
-        self.coord_menu(self.master.line1['q'], quads, 1, 4)
-        self.end_label('X, Z, R, Q', 1)
+        self.start_label('Starting point on curved track', 2)
+        self.coord_entry(self.master.line1['x'], 2, 1)
+        self.coord_entry(self.master.line1['z'], 2, 2)
+        self.coord_entry(self.master.line1['r'], 2, 3)
+        self.coord_menu(self.master.line1['q'], quads, 2, 4)
 
-        self.start_label('Straight track to join', 2)
-        self.coord_entry(self.master.line2['x'], 2, 1)
-        self.coord_entry(self.master.line2['z'], 2, 2)
-        self.coord_entry(self.master.line2['r'], 2, 3)
-        self.coord_menu(self.master.line2['q'], quads, 2, 4)
-        self.end_label('X, Z, R, Q', 2)
+        self.start_label('Straight track to join', 3)
+        self.coord_entry(self.master.line2['x'], 3, 1)
+        self.coord_entry(self.master.line2['z'], 3, 2)
+        self.coord_entry(self.master.line2['r'], 3, 3)
+        self.coord_menu(self.master.line2['q'], quads, 3, 4)
 
     def get_result(self):
         start_track = self.get_coord(self.master.line1)
