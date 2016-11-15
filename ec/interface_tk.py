@@ -10,10 +10,8 @@ import tkinter.ttk as ttk
 
 from ec import __version__, coord, section, curve
 
-# TODO: Sort out the text.
-# TODO: Add gettext support.
-# TODO: Save defaults (eg km/h set and saved for next startup).
-# TODO: Consider adding speed tolerance profiles.
+# TODO: Add gettext support. Next version
+# TODO: Consider adding speed tolerance profiles, and/or settings. Next version
 
 
 def text_length(length, font='TkDefaultFont'):
@@ -59,13 +57,13 @@ class MainWindow(ttk.Frame):
         self.speed, self.dim, self.min_radius = tk.DoubleVar(), tk.StringVar(), tk.IntVar()
         self.select_speed_radius(row=2)
 
-        def coord_stringvar(): return {j: tk.StringVar() for j in 'xzrq'}
-        # Create dicts of stringvars and grid for entering data
-        self.line0, self.line1, self.line2 = \
-            coord_stringvar(), coord_stringvar(), coord_stringvar()
-        self.radius, self.cw, self.row = tk.StringVar(), tk.StringVar(), 3
-        self.entries = {'1': EntryMethod1, '2': EntryMethod2}
-        self.current_entry = self.entries[self.method](self, row=self.row)
+        # Data entry
+        self.entries = {'1': EntryMethod1(self, row=3),
+                        '2': EntryMethod2(self, row=3)}
+        self.current_entry = self.entries[self.method]
+        # Hiding all widgets not selected
+        for k in [i for i in self.entries.keys() if i != self.method]:
+            self.entries[k].grid_remove()
 
         # Message
         ttk.Style().configure('Red.TLabel', foreground="red")
@@ -176,10 +174,10 @@ class MainWindow(ttk.Frame):
         self.method_heading.config(text='Method {} description'.format(self.method))
         self.method_description.config(text=self.description[self.method])
 
-        # Destroys current entry widget and create new
-        self.current_entry.destroy()
-        self.current_entry = self.entries[self.method](
-            self, self.row)
+        # Hides current entry widget and shows new one
+        self.current_entry.grid_remove()
+        self.current_entry = self.entries[self.method]
+        self.current_entry.grid_replace()
 
         # Lowers entry widget below message/actions to ensure correct tab order
         if self.msg_frame is not None:
@@ -218,12 +216,7 @@ class MainWindow(ttk.Frame):
     def clear(self):
         """ Command to clear and reset all entries/selections in data entry.
         """
-        self.msg.config(text='')
-        self.radius.set('')
-        self.cw.set('N/A')
-        for line in [self.line0, self.line1, self.line2]:
-            for entry in line.values():
-                entry.set('')
+        self.current_entry.reset_values()
 
     def calculate(self, event=None):
         """ Takes data, calculates the curve geometry and passes results to
@@ -401,8 +394,15 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
     def __init__(self, parent, row):
         super(EntryM, self).__init__(parent)
         self.config(text='Curve data', padding="0 0 0 10")
-        self.grid(row=row, column=0, sticky=(tk.N, tk.W, tk.E))
+        self.row = row
+        self.grid_replace()
 
+        # Data entries
+        self.line0 = self.coord_stringvar()
+        self.line1 = self.coord_stringvar()
+        self.line2 = self.coord_stringvar()
+        self.radius, self.direction = tk.StringVar(), tk.StringVar()
+        
         # All rows and columns in grid
         for i in range(5):
             self.grid_columnconfigure(i, pad=4)
@@ -412,9 +412,28 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
         self.master = parent
         self.get_table()
 
+    def grid_replace(self):
+        """ Restores this frame to original position. """
+        self.grid(row=self.row, column=0, sticky=(tk.N, tk.W, tk.E))
+
     def args(self):
+        """ Dict to be used as arguement for the TrackCurve instances. """
         return {'speed': self.master.kph,
                 'minimum': self.master.min_radius.get()}
+
+    def reset_values(self):
+        """ Resets all entries to their original configuration. """
+        self.radius.set('')
+        self.direction.set('N/A')
+        for line in [self.line0, self.line1, self.line2]:
+            for entry in line.values():
+                entry.set('')
+        self.line0['r'].set('0')
+        self.line0['q'].set('NE')
+
+    @staticmethod
+    def coord_stringvar():
+        return {j: tk.StringVar() for j in 'xzrq'}
 
     @staticmethod
     def get_coord(data):
@@ -486,37 +505,38 @@ class EntryMethod1(EntryM):
         quads = ['NE', 'SE', 'SW', 'NW']
 
         self.start_label('1st straight track', 0)
-        self.coord_entry(self.master.line1['x'], 0, 1)
-        self.coord_entry(self.master.line1['z'], 0, 2)
-        self.coord_entry(self.master.line1['r'], 0, 3)
-        self.coord_menu(self.master.line1['q'], quads, 0, 4)
+        self.coord_entry(self.line1['x'], 0, 1)
+        self.coord_entry(self.line1['z'], 0, 2)
+        self.coord_entry(self.line1['r'], 0, 3)
+        self.coord_menu(self.line1['q'], quads, 0, 4)
         self.end_label('X, Z, R, Q', 0)
 
         self.start_label('2nd straight track', 1)
-        self.coord_entry(self.master.line2['x'], 1, 1)
-        self.coord_entry(self.master.line2['z'], 1, 2)
-        self.coord_entry(self.master.line2['r'], 1, 3)
-        self.coord_menu(self.master.line2['q'], quads, 1, 4)
+        self.coord_entry(self.line2['x'], 1, 1)
+        self.coord_entry(self.line2['z'], 1, 2)
+        self.coord_entry(self.line2['r'], 1, 3)
+        self.coord_menu(self.line2['q'], quads, 1, 4)
         self.end_label('X, Z, R, Q', 1)
 
         self.start_label('Radius of curvature', 2)
-        self.coord_entry(self.master.radius, 2, 1)
+        self.coord_entry(self.radius, 2, 1)
         self.end_label('m', 2, 2)
 
         ttk.Label(self, text='direction', justify=tk.RIGHT
                   ).grid(row=2, column=3, sticky=tk.W)
-        self.coord_menu(self.master.cw, ['N/A', 'CW', 'ACW'], 2, 4, default=True)
+        self.coord_menu(self.direction, ['N/A', 'CW', 'ACW'], 2, 4,
+                        default=True)
 
     def get_result(self):
-        start_track = self.get_coord(self.master.line1)
-        end_track = self.get_coord(self.master.line2)
+        start_track = self.get_coord(self.line1)
+        end_track = self.get_coord(self.line2)
         try:
-            curve_radius = float(self.master.radius.get())
+            curve_radius = float(self.radius.get())
         except ValueError:
             raise InterfaceException('Radius of curvature must be a number.')
 
         track = curve.TrackCurve(curve=start_track, **self.args())
-        clockwise = {'CW': True, 'ACW': False}.get(self.master.cw.get())
+        clockwise = {'CW': True, 'ACW': False}.get(self.direction.get())
 
         return track.curve_fit_radius(other=end_track, radius=curve_radius,
                                       clockwise=clockwise)
@@ -532,37 +552,37 @@ class EntryMethod2(EntryM):
         quads = ['NE', 'SE', 'SW', 'NW']
 
         self.start_label('Add. point on starting track', 0)
-        self.coord_entry(self.master.line0['x'], 0, 1)
-        self.coord_entry(self.master.line0['z'], 0, 2)
-        self.master.line0['r'].set('0')
-        self.master.line0['q'].set('NE')
+        self.coord_entry(self.line0['x'], 0, 1)
+        self.coord_entry(self.line0['z'], 0, 2)
+        self.line0['r'].set('0')
+        self.line0['q'].set('NE')
         self.end_label('X, Z', 0)
 
         self.start_label('Starting point on curved track', 1)
-        self.coord_entry(self.master.line1['x'], 1, 1)
-        self.coord_entry(self.master.line1['z'], 1, 2)
-        self.coord_entry(self.master.line1['r'], 1, 3)
-        self.coord_menu(self.master.line1['q'], quads, 1, 4)
+        self.coord_entry(self.line1['x'], 1, 1)
+        self.coord_entry(self.line1['z'], 1, 2)
+        self.coord_entry(self.line1['r'], 1, 3)
+        self.coord_menu(self.line1['q'], quads, 1, 4)
         self.end_label('X, Z, R, Q', 1)
 
         self.start_label('Straight track to join', 2)
-        self.coord_entry(self.master.line2['x'], 2, 1)
-        self.coord_entry(self.master.line2['z'], 2, 2)
-        self.coord_entry(self.master.line2['r'], 2, 3)
-        self.coord_menu(self.master.line2['q'], quads, 2, 4)
+        self.coord_entry(self.line2['x'], 2, 1)
+        self.coord_entry(self.line2['z'], 2, 2)
+        self.coord_entry(self.line2['r'], 2, 3)
+        self.coord_menu(self.line2['q'], quads, 2, 4)
         self.end_label('X, Z, R, Q', 2)
 
     def get_result(self):
-        start_track = self.get_coord(self.master.line1)
-        end_track = self.get_coord(self.master.line2)
+        start_track = self.get_coord(self.line1)
+        end_track = self.get_coord(self.line2)
 
         track = curve.TrackCurve(curve=start_track, **self.args())
 
         # Check if first two fields are empty - if so, track is straight
-        if all(self.master.line0[k].get() == '' for k in 'xz'):
+        if all(self.line0[k].get() == '' for k in 'xz'):
             return track.curve_fit_point(other=end_track)
         else:
-            pre_track = self.get_coord(self.master.line0)
+            pre_track = self.get_coord(self.line0)
             return track.curve_fit_point(other=end_track, add_point=pre_track)
 
 
