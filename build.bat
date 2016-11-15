@@ -1,6 +1,6 @@
 @echo off
 
-REM Batch script to automate building executables.
+REM Batch script to automate building executables with 32-bit Conda Python.
 REM     -f: Build one file executable.
 REM     -d: Build executable with directory.
 
@@ -9,19 +9,25 @@ IF "%~1" == "" (
     exit /b
 )
 
-set CONDA_FORCE_32BIT=1
-call activate ec32
+IF "%~1" == "-f" goto bf
+IF "%~1" == "-d" goto bd
 
-IF "%~1" == "-f" (
-    pyinstaller build_f.spec
-    exit /b
-)
-IF "%~1" == "-d" (
-    pyinstaller build_d.spec
-    exit /b
-)
-
+REM All other arguments
 @echo Wrong arguments inputted.
 
-call deactivate
-set CONDA_FORCE_32BIT=
+:bf
+    set CONDA_FORCE_32BIT=1
+    call activate ec32
+    pyinstaller build_f.spec
+    goto finish
+
+:bd
+    set CONDA_FORCE_32BIT=1
+    call activate ec32
+    pyinstaller build_d.spec
+    goto finish
+
+:finish
+    call deactivate
+    set CONDA_FORCE_32BIT=
+    exit /b
