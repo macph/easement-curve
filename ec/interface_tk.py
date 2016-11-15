@@ -510,8 +510,6 @@ class EntryMethod1(EntryM):
                   ).grid(row=3, column=3, sticky=tk.W)
         self.coord_menu(self.master.cw, ['N/A', 'CW', 'ACW'], 3, 4, default=True)
 
-        self.rowconfigure(3, pad=12)
-
     def get_result(self):
         start_track = self.get_coord(self.master.line1)
         end_track = self.get_coord(self.master.line2)
