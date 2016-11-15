@@ -11,7 +11,7 @@ class Q(Enum):
     NONE, NE, SE, SW, NW = range(5)
 
 
-class CoordException(Exception):
+class CoordError(Exception):
     pass
 
 
@@ -41,7 +41,7 @@ class TrackCoord(object):
         try:
             math.sqrt(self.pos_x ** 2 + self.pos_z ** 2)
         except TypeError as err:
-            raise CoordException("Position values must be int/floats.", err)
+            raise CoordError('Position values must be int/floats.', err)
 
         # Converting y-axis rotation and quadrant to bearing
         if quad in [Q.NE, Q.SE, Q.SW, Q.NW]:
@@ -49,8 +49,8 @@ class TrackCoord(object):
         elif quad == Q.NONE:
             self.bearing = rotation
         else:
-            raise CoordException("quad argument must either be a compass "
-                                 "quadrant or none.")
+            raise CoordError('quad argument must either be a compass '
+                             'quadrant or none.')
 
     @property
     def bearing(self):
@@ -83,16 +83,16 @@ class TrackCoord(object):
                 return quadrants[0]
             # Otherwise, raises error
             raise ValueError(
-                "Bearing: {} is not within [0, 360) / [0, 2pi)."
-                "".format(repr(bearing)))
+                'Bearing: {} is not within [0, 360) / [0, 2pi).'
+                ''.format(repr(bearing)))
 
     @quad.setter
     def quad(self, value):
         try:
             rotation, quad = value
         except ValueError as err:
-            raise ValueError("The quad property requires two values: "
-                             "rotation and quadrant.") from err
+            raise ValueError('The quad property requires two values: '
+                             'rotation and quadrant.') from err
 
         quadrants = {Q.NE: abs(rotation),
                      Q.SE: 180 - abs(rotation),
@@ -103,16 +103,16 @@ class TrackCoord(object):
             if abs(rotation) <= 90:
                 self._bearing = Bearing(quadrants[quad])
             else:
-                raise CoordException("The y-axis rotation must be in the "
-                                     "range [-90, 90].")
+                raise CoordError('The y-axis rotation must be in the range '
+                                 '[-90, 90].')
 
         except KeyError:
-            raise CoordException("{!r} is not a valid quadrant.".format(quad))
+            raise CoordError('{!r} is not a valid quadrant.'.format(quad))
 
         except TypeError as err:
-            raise CoordException(
-                "{0:!r} is not a valid number for the rotation variable."
-                "".format(rotation), err)
+            raise CoordError(
+                '{0:!r} is not a valid number for the rotation variable.'
+                ''.format(rotation), err)
 
     @staticmethod
     def get_radius_clockwise(stored_variable):
@@ -125,8 +125,8 @@ class TrackCoord(object):
 
     @staticmethod
     def set_radius_clockwise(variable, stored_variable):
-        raise AttributeError("Can't set {0} property on its own. Use the "
-                             "{1} property.".format(variable, stored_variable))
+        raise AttributeError('Property {0} cannot be set on its own. Use the '
+                             '{1} property.'.format(variable, stored_variable))
 
     @property
     def curvature(self):

@@ -17,18 +17,18 @@ class CoordGeneralTests(unittest.TestCase):
         self.assertEqual((tc.pos_x, tc.pos_z), (5, 5))
 
     def test_exception_position(self):
-        with self.assertRaisesRegex(ec.coord.CoordException, 'Position values'):
+        with self.assertRaisesRegex(ec.coord.CoordError, 'Position values'):
             ec.coord.TrackCoord(None, 5, 0, ec.coord.Q.NONE, curvature=0)
 
 
 class CoordBearingTests(unittest.TestCase):
 
     def test_exception_rotation_over_range(self):
-        with self.assertRaisesRegex(ec.coord.CoordException, 'y-axis rotation'):
+        with self.assertRaisesRegex(ec.coord.CoordError, 'y-axis rotation'):
             ec.coord.TrackCoord(0, 0, 100, ec.coord.Q.NE, curvature=0)
 
     def test_exception_rotation_under_range(self):
-        with self.assertRaisesRegex(ec.coord.CoordException, 'y-axis rotation'):
+        with self.assertRaisesRegex(ec.coord.CoordError, 'y-axis rotation'):
             ec.coord.TrackCoord(0, 0, -100, ec.coord.Q.NE, curvature=0)
 
     def test_exception_wrong_bearing(self):
@@ -36,7 +36,7 @@ class CoordBearingTests(unittest.TestCase):
             ec.coord.TrackCoord(0, 0, None, ec.coord.Q.NONE, curvature=0)
 
     def test_exception_wrong_quad(self):
-        with self.assertRaisesRegex(ec.coord.CoordException, 'compass quadrant'):
+        with self.assertRaisesRegex(ec.coord.CoordError, 'compass quadrant'):
             ec.coord.TrackCoord(0, 0, 0, quad="A")
 
     def test_quad_ne(self):
