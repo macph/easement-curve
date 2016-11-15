@@ -222,6 +222,23 @@ class TrackSection(object):
                           org_curvature=self.start.curvature,
                           org_type='static')
 
+    def straight_line(self, length):
+        """ Creates a straight line with zero curvature. Outputs another
+            TrackCoord object.
+        """
+        if self.start.curvature != 0:
+            raise TrackException("The starting curvature must be zero to "
+                                 "create a straight line.")
+
+        line = LinearEquation(self.start.bearing,
+                              (self.start.pos_x, self.start.pos_z))
+        end_x, end_y = line.move(length)
+
+        return TrackCoord(pos_x=end_x, pos_z=end_y,
+                          rotation=self.start.bearing, quad=Q.NONE,
+                          curvature=0, org_length=length, org_curvature=0,
+                          org_type='straight')
+
     def __repr__(self):
         return '{tc}; min radius: {m}; speed: {s}; clockwise: {cl}'.format(
             tc=repr(self.start), m=self.minimum_radius, s=self.speed_tolerance,

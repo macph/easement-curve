@@ -157,6 +157,14 @@ class LinearEquation(object):
         return (self.v*math.sin(self.b)
                 + (x - self.u)*math.cos(self.b)) / math.sin(self.b)
 
+    def move(self, length):
+        """ Returns coordinates of point a set length away from initial
+            coordinates on line. If length is negative the point is behind
+            the initial coordinates, in the opposite direction to the bearing.
+        """
+        return (self.u + length * math.sin(self.b),
+                self.v + length * math.cos(self.b))
+
     def dist(self, p, absolute=True):
         """ Shortest distance between point p = (x,y) and the line. """
         result = (p[0]-self.u)*math.cos(self.b) - \
