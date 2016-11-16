@@ -62,9 +62,6 @@ class TrackSection(object):
             from the origin. The angle is between the curve at that particular
             point and the z-axis, and is in radians.
         """
-        if self.clockwise is None:
-            raise AttributeError('The clockwise attribute has not been set'
-                                 'yet.')
 
         a, t = 1 / math.sqrt(2 * self.factor()), length
         # Derivatives of the polynomials from fresnel()

@@ -53,9 +53,8 @@ class MainWindow(ttk.Frame):
         self.show_method_description(row=1)
 
         # Enter speed tolerance (in mph or km/h) and minimum radius
-        self.sr_frame = None
-        self.speed, self.dim, self.min_radius = tk.DoubleVar(), tk.StringVar(), tk.IntVar()
-        self.select_speed_radius(row=2)
+        self.sr = SpeedRadius(self, row=2)
+        self.minimum_radius = self.sr.minimum
 
         # Data entry
         self.entries = {'1': EntryMethod1(self, row=3),
@@ -72,8 +71,7 @@ class MainWindow(ttk.Frame):
         self.message_actions(row=4)
 
         # Results table
-        self.result = None
-        self.results(row=5)
+        self.result = Result(self, row=5)
 
         # Bindings
         self.parent.bind('<Return>', self.calculate)
@@ -105,45 +103,21 @@ class MainWindow(ttk.Frame):
     def kph(self, value):
         self._kph = value
 
-    def select_speed_radius(self, row):
-        """ LabelFrame widget with speed tolerance and minimum radius entries.
-        """
-        self.sr_frame = ttk.LabelFrame(self, text="Curve setup",
-                                       padding="0 0 0 8")
-        self.sr_frame.grid(column=0, row=row, sticky=(tk.W, tk.E))
-        self.sr_frame.columnconfigure(2, pad=4)
-
-        options = ['mph', 'km/h']
-        ttk.Label(self.sr_frame, text='Speed tolerance ', padding="4 0 0 0"
-                  ).grid(column=0, row=0)
-        ttk.Entry(self.sr_frame, textvariable=self.speed, width=6
-                  ).grid(column=1, row=0)
-        option_dim = ttk.Combobox(self.sr_frame, textvariable=self.dim)
-        option_dim.config(width=5, values=options, state='readonly')
-        option_dim.current(0)
-        option_dim.grid(column=2, row=0)
-
-        ttk.Label(self.sr_frame, text='Minimum radius of curvature ', padding="8 0 0 0"
-                  ).grid(column=3, row=0)
-        ttk.Entry(self.sr_frame, textvariable=self.min_radius, width=6
-                  ).grid(column=4, row=0)
-        ttk.Label(self.sr_frame, text='m', padding="4 0 0 0").grid(column=5, row=0)
-
     def select_method_about(self, row):
         """ Widget for calculation method selection. as well as About button.
         """
         self.sm_frame = ttk.Frame(self, padding="6 0 0 0")
-        self.sm_frame.grid(column=0, row=row, sticky=(tk.W, tk.E))
+        self.sm_frame.grid(row=row, column=0, sticky=(tk.W, tk.E))
         self.sm_frame.columnconfigure(2, weight=1)
 
-        ttk.Label(self.sm_frame, text='Select method ').grid(column=0, row=0)
+        ttk.Label(self.sm_frame, text='Select method ').grid(row=0, column=0)
 
         options = ['1', '2']
         ttk.OptionMenu(self.sm_frame, self.selected_method, options[0], *options,
-                       command=self.refresh_method).grid(column=1, row=0)
+                       command=self.refresh_method).grid(row=0, column=1)
 
         ttk.Button(self.sm_frame, text='About', command=self.open_about
-                   ).grid(column=3, row=0, sticky=tk.E)
+                   ).grid(row=0, column=3, sticky=tk.E)
 
     def open_about(self, event=None):
         """ Opens the About dialog. If it has already been initialised the
@@ -188,18 +162,18 @@ class MainWindow(ttk.Frame):
             Clear buttons.
         """
         self.msg_frame = ttk.Frame(self, padding="0 4 0 4")
-        self.msg_frame.grid(column=0, row=row, sticky=(tk.W, tk.E))
+        self.msg_frame.grid(row=row, column=0, sticky=(tk.W, tk.E))
         self.msg_frame.columnconfigure(1, weight=1)
         self.msg_frame.columnconfigure(3, pad=4)
 
         self.msg = ttk.Label(self.msg_frame, text='')
         self.msg.config(width=56, wraplength=text_length(56))
-        self.msg.grid(column=0, row=0, sticky=tk.W)
+        self.msg.grid(row=0, column=0, sticky=tk.W)
 
         ttk.Button(self.msg_frame, text='Calculate', command=self.calculate
-                   ).grid(column=2, row=0, sticky=(tk.N, tk.E))
+                   ).grid(row=0, column=2, sticky=(tk.N, tk.E))
         ttk.Button(self.msg_frame, text='Clear', command=self.clear
-                   ).grid(column=3, row=0, sticky=(tk.N, tk.E))
+                   ).grid(row=0, column=3, sticky=(tk.N, tk.E))
 
     def refresh_message(self, message, colour='black'):
         """ Command to refresh the calculation message. """
@@ -207,11 +181,6 @@ class MainWindow(ttk.Frame):
             self.msg.config(text=message, style='Red.TLabel')
         else:
             self.msg.config(text=message, style='TLabel')
-
-    def results(self, row):
-        """ Shows the results table. """
-        self.result = Result(self)
-        self.result.grid(column=0, row=row, sticky=(tk.W, tk.E))
 
     def clear(self):
         """ Command to clear and reset all entries/selections in data entry.
@@ -224,10 +193,10 @@ class MainWindow(ttk.Frame):
         """
         self.result.clear_table()
 
-        if self.dim.get() == 'mph':
-            self.mph = self.speed.get()
+        if self.sr.dim.get() == 'mph':
+            self.mph = self.sr.speed.get()
         else:
-            self.kph = self.speed.get()
+            self.kph = self.sr.speed.get()
 
         try:
             # TODO: Add another value to display message (eg longer than expected curve).
@@ -387,6 +356,46 @@ class AboutDialog(tk.Toplevel):
         self.move()
         self.deiconify()
 
+# TODO: Add track profiles.
+
+
+class SpeedRadius(ttk.LabelFrame):
+
+    dict_profiles = {'default': {'speed': 0, 'dim': 'mph', 'minimum': 0},
+                     'mainline': {'speed': 120, 'dim': 'mph', 'minimum': 1000},
+                     'passenger': {'speed': 80, 'dim': 'mph', 'minimum': 500},
+                     'freight': {'speed': 60, 'dim': 'mph', 'minimum': 250},
+                     'yard': {'speed': 40, 'dim': 'mph', 'minimum': 150}}
+
+    def __init__(self, parent, row):
+        super(SpeedRadius, self).__init__(parent)
+        self.config(padding="0 0 0 8", text='Curve setup')
+        self.grid(row=row, column=0, sticky=(tk.W, tk.E))
+        self.columnconfigure(1, pad=4)
+
+        self.speed = tk.IntVar()
+        self.dim = tk.StringVar()
+        self.minimum = tk.IntVar()
+        self.body()
+
+    def body(self):
+        options = ['mph', 'km/h']
+        ttk.Label(self, text='Speed tolerance ', width=16
+                  ).grid(row=0, column=0, sticky=tk.W)
+        ttk.Entry(self, textvariable=self.speed, width=6
+                  ).grid(row=0, column=1, sticky=tk.W)
+        dimensions = ttk.Combobox(self, textvariable=self.dim)
+        dimensions.config(width=5, values=options, state='readonly')
+        dimensions.current(0)
+        dimensions.grid(row=0, column=2, sticky=tk.W)
+
+        ttk.Label(self, text='Minimum radius of curvature ', padding="8 0 0 0"
+                  ).grid(row=0, column=3, columnspan=2, sticky=tk.W)
+        ttk.Entry(self, textvariable=self.minimum, width=6
+                  ).grid(row=0, column=5, sticky=tk.W)
+        ttk.Label(self, text='m', padding="4 0 0 0"
+                  ).grid(row=0, column=6, sticky=tk.W)
+
 
 class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
     """ Common class for entry data table. Must be subclassed. """
@@ -419,7 +428,7 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
     def args(self):
         """ Dict to be used as arguement for the TrackCurve instances. """
         return {'speed': self.master.kph,
-                'minimum': self.master.min_radius.get()}
+                'minimum': self.master.minimum_radius.get()}
 
     def reset_values(self):
         """ Resets all entries to their original configuration. """
@@ -589,8 +598,9 @@ class EntryMethod2(EntryM):
 class Result(ttk.Frame):
     """ Results table, based on TreeView widget. """
 
-    def __init__(self, parent):
+    def __init__(self, parent, row):
         super(Result, self).__init__(parent)
+        self.grid(row=row, column=0, sticky=(tk.W, tk.E))
         self.treeview = None
         self.create_table()
 
