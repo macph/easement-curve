@@ -54,7 +54,7 @@ class MainWindow(ttk.Frame):
 
         # Enter speed tolerance (in mph or km/h) and minimum radius
         self.sr = SpeedRadius(self, row=2)
-        self.minimum_radius = self.sr.minimum
+        self.minimum_radius = None
 
         # Data entry
         self.entries = {'1': EntryMethod1(self, row=3),
@@ -193,10 +193,18 @@ class MainWindow(ttk.Frame):
         """
         self.result.clear_table()
 
-        if self.sr.dim.get() == 'mph':
-            self.mph = self.sr.speed.get()
-        else:
-            self.kph = self.sr.speed.get()
+        try:
+            if self.sr.dim.get() == 'mph':
+                self.mph = float(self.sr.speed.get())
+            else:
+                self.kph = float(self.sr.speed.get())
+
+            self.minimum_radius = self.sr.minimum.get()
+
+        except ValueError:
+            self.refresh_message('Error: Speed tolerance and minimum radius '
+                                 'must be valid numbers.', 'red')
+            return
 
         try:
             # TODO: Add another value to display message (eg longer than expected curve).
@@ -204,7 +212,7 @@ class MainWindow(ttk.Frame):
 
         except AttributeError as err:
             self.refresh_message('Error: All fields must be filled in.', 'red')
-            raise AttributeError from err
+            raise
 
         except (InterfaceException, coord.CoordError, section.TrackError,
                 curve.CurveError) as err:
@@ -363,13 +371,13 @@ class SpeedRadius(ttk.LabelFrame):
 
     def __init__(self, parent, row):
         super(SpeedRadius, self).__init__(parent)
-        self.config(padding="0 0 0 8", text='Curve setup')
+        self.config(padding="4 0 0 8", text='Curve setup')
         self.grid(row=row, column=0, sticky=(tk.W, tk.E))
         self.columnconfigure(1, pad=4)
 
-        self.speed = tk.IntVar()
+        self.speed = tk.StringVar()
         self.dim = tk.StringVar()
-        self.minimum = tk.IntVar()
+        self.minimum = tk.StringVar()
         self.body()
 
     def body(self):
