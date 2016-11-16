@@ -32,11 +32,11 @@ class TrackSectionTests(BaseTSTests):
 
     def test_exception_track_coord(self):
         with self.assertRaisesRegex(AttributeError, 'TrackCoord'):
-            ts = ec.section.TrackSection(None, self.m, self.s)
+            ec.section.TrackSection(None, self.m, self.s)
 
     def test_exception_minimum_radius(self):
         with self.assertRaises(ec.section.TrackError):
-            ts = ec.section.TrackSection(self.curved_left, 800, self.s)
+            ec.section.TrackSection(self.curved_left, 800, self.s)
 
     def test_curvature_attribute(self):
         ts = ec.section.TrackSection(self.curved_left, self.m, self.s)
@@ -129,7 +129,7 @@ class FindStaticRadiusTests(unittest.TestCase):
 
     def test_find_radius_right_opposite(self):
         new_ts = ec.section.TrackSection(self.right, self.m, self.s)
-        result = new_ts.get_static_radius(self.start)
+        new_ts.get_static_radius(self.start)
         self.assertAlmostEqual(new_ts.start.curvature, -0.001359817930914901)
 
     def test_find_radius_left(self):
@@ -142,7 +142,7 @@ class FindStaticRadiusTests(unittest.TestCase):
 
     def test_find_radius_left_opposite(self):
         new_ts = ec.section.TrackSection(self.left, self.m, self.s)
-        result = new_ts.get_static_radius(self.start)
+        new_ts.get_static_radius(self.start)
         self.assertAlmostEqual(new_ts.start.curvature, 0.0012140339764863358)
 
     def test_find_radius_axes_clockwise(self):
