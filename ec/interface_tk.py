@@ -361,6 +361,12 @@ class AboutDialog(tk.Toplevel):
 
 class SpeedRadius(ttk.LabelFrame):
 
+    dict_profiles = {'default': {'speed': 0, 'dim': 'mph', 'minimum': 0},
+                     'mainline': {'speed': 120, 'dim': 'mph', 'minimum': 1000},
+                     'passenger': {'speed': 80, 'dim': 'mph', 'minimum': 500},
+                     'freight': {'speed': 60, 'dim': 'mph', 'minimum': 250},
+                     'yard': {'speed': 40, 'dim': 'mph', 'minimum': 150}}
+
     def __init__(self, parent, row):
         super(SpeedRadius, self).__init__(parent)
         self.config(padding="0 0 0 8", text='Curve setup')
