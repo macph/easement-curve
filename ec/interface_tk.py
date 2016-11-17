@@ -42,16 +42,6 @@ class InterfaceException(Exception):
 class MainWindow(ttk.Frame):
     """ Main application window. """
 
-    description = {
-        '1': ("Takes two straight tracks at different angles, and creates an "
-              "easement curve with set radius of curvature connecting the two "
-              "tracks."),
-        '2': ("Extends an easement curve onwards from a track to join with "
-              "another straight track. The optional pair of coordinates on "
-              "the first track is used to define radius of curvature - if "
-              "it is left empty the first track is assumed to be straight.")
-    }
-
     def __init__(self, parent, **kwargs):
         super(MainWindow, self).__init__(parent, **kwargs)
 
@@ -61,9 +51,8 @@ class MainWindow(ttk.Frame):
         # Calc method select and description
         self.sm_frame, self.about = None, None
         self.selected_method = tk.StringVar()
-        self.method_heading, self.method_description = None, None
         self.select_method_about(row=0)
-        self.show_method_description(row=1)
+        self.description = MethodDescription(self, row=1)
 
         # Enter speed tolerance (in mph or km/h) and minimum radius
         self.sr = SpeedRadius(self, row=2)
@@ -141,25 +130,12 @@ class MainWindow(ttk.Frame):
         else:
             self.about = AboutDialog(self.parent)
 
-    def show_method_description(self, row):
-        """ LabelFrame widget for displaying method description. """
-        self.method_heading = ttk.LabelFrame(
-            self, text='Method {} description'.format(self.method))
-        self.method_heading.grid(row=row, sticky=(tk.W, tk.E))
-
-        self.method_description = ttk.Label(self.method_heading,
-                                            text=self.description[self.method])
-        self.method_description.config(
-            width=82, wraplength=int(text_length(82)), padding="4 0 0 4")
-        self.method_description.grid(sticky=(tk.W, tk.E))
-
     def refresh_method(self, event=None):
         """ Command to refresh method description and data entries depending
             on which method was selected.
         """
         # Method description changed
-        self.method_heading.config(text='Method {} description'.format(self.method))
-        self.method_description.config(text=self.description[self.method])
+        self.description.refresh()
 
         # Hides current entry widget and shows new one
         self.current_entry.grid_remove()
@@ -287,9 +263,9 @@ class MainWindow(ttk.Frame):
             elif ts.org_type == 'static':
                 if count_static > 1:
                     s += 1
-                    section_name = 'Static curve {}'.format(s)
+                    section_name = 'Static {}'.format(s)
                 else:
-                    section_name = 'Static curve'
+                    section_name = 'Static'
             elif ts.org_type == 'easement':
                 if count_ease > 1:
                     e += 1
@@ -348,7 +324,7 @@ class AboutDialog(tk.Toplevel):
 
     def body(self):
         # Creating logo image
-        logo_file = resource_path('resources/logo_256.png')
+        logo_file = resource_path('resources/logo.png')
         logo = tk.PhotoImage(file=logo_file)
         logo_label = ttk.Label(self.container, image=logo)
         logo_label.grid(row=0, column=0)
@@ -378,10 +354,46 @@ class AboutDialog(tk.Toplevel):
         self.move()
         self.deiconify()
 
-# TODO: Add track profiles.
+
+class MethodDescription(ttk.LabelFrame):
+    """ LabelFrame widget for displaying method description. """
+
+    description = {
+        '1': ("Takes two straight tracks at different angles, and creates an "
+              "easement curve with set radius of curvature connecting the two "
+              "tracks."),
+        '2': ("Extends an easement curve onwards from a track to join with "
+              "another straight track. The optional pair of coordinates on "
+              "the first track is used to define radius of curvature - if "
+              "it is left empty the first track is assumed to be straight.")
+    }
+
+    def __init__(self, parent, row):
+        super(MethodDescription, self).__init__(parent)
+        self.parent = parent
+        self.config(padding="4 0 0 4",
+                    text='Method {} description'.format(self.parent.method))
+        self.grid(row=row, column=0, sticky=(tk.W, tk.E))
+
+        self.text = None
+        self.body()
+
+    def body(self):
+        self.text = ttk.Label(self, text=self.description[self.parent.method])
+        self.text.config(
+            width=80, wraplength=int(text_length(80)), padding="4 0 0 4")
+        self.text.grid(sticky=(tk.W, tk.E))
+
+    def refresh(self):
+        """ Refreshes the heading and text when method selection changes. """
+        self.config(text='Method {} description'.format(self.parent.method))
+        self.text.config(text=self.description[self.parent.method])
 
 
 class SpeedRadius(ttk.LabelFrame):
+    """ LabelFrame widget for setting speed tolerance and minimum radius of
+        curvature.
+    """
 
     def __init__(self, parent, row):
         super(SpeedRadius, self).__init__(parent)
@@ -400,6 +412,7 @@ class SpeedRadius(ttk.LabelFrame):
                   ).grid(row=0, column=0, sticky=tk.W)
         ttk.Entry(self, textvariable=self.speed, width=6
                   ).grid(row=0, column=1, sticky=tk.W)
+
         dimensions = ttk.Combobox(self, textvariable=self.dim)
         dimensions.config(width=6, values=options, state='readonly')
         dimensions.current(0)
@@ -434,7 +447,7 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
         for j in range(4):
             self.grid_rowconfigure(j, pad=4)
 
-        self.master = parent
+        self.parent = parent
         self.get_table()
 
     def grid_replace(self):
@@ -443,8 +456,8 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
 
     def args(self):
         """ Dict to be used as arguement for the TrackCurve instances. """
-        return {'speed': self.master.kph,
-                'minimum': self.master.minimum_radius}
+        return {'speed': self.parent.kph,
+                'minimum': self.parent.minimum_radius}
 
     def reset_values(self):
         """ Resets all entries to their original configuration. """
@@ -517,7 +530,6 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
             menu.current(0)
 
 
-# TODO: Consider putting keys on top instead of X, Z, R, Q to right
 # TODO: Consider changing TreeView to a grid of Text widgets.
 
 

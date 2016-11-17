@@ -7,6 +7,7 @@ import math
 from ec.common import Bearing, LinearEquation
 from ec.section import TrackSection
 
+# TODO: Consider splitting static curves into 500.0 m sections.
 
 class CurveError(Exception):
     pass
