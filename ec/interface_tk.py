@@ -2,7 +2,8 @@
 # Tk graphical user interface for easement curve calculations
 
 from abc import ABCMeta, abstractmethod
-from sys import version_info
+import os
+import sys
 
 import tkinter as tk
 import tkinter.font as tkfont
@@ -12,6 +13,18 @@ from ec import __version__, coord, section, curve
 
 # TODO: Add gettext support. Next version
 # TODO: Consider adding speed tolerance profiles, and/or settings. Next version
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    # stackoverflow.com/questions/7674790/bundling-data-files-with-pyinstaller-onefile
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 def text_length(length, font='TkDefaultFont'):
@@ -319,6 +332,7 @@ class AboutDialog(tk.Toplevel):
         self.title('About')
         self.transient(parent)
         self.resizable(False, False)
+        self.iconbitmap(resource_path('resources/logo.ico'))
         self.move()    # Moving window relative to parent window
         self.focus_set()    # Switching focus to this window
 
@@ -333,15 +347,15 @@ class AboutDialog(tk.Toplevel):
         self.bind('<Return>', self.hide)
 
     def body(self):
-        # TODO: Get PyInstaller to bundle ico and image files properly
         # Creating logo image
-        # logo = tk.PhotoImage(file='resources/logo_256.png')
-        # logo_label = ttk.Label(self.container, image=logo)
-        # logo_label.grid(row=0, column=0)
-        # logo_label.image = logo
+        logo_file = resource_path('resources/logo_256.png')
+        logo = tk.PhotoImage(file=logo_file)
+        logo_label = ttk.Label(self.container, image=logo)
+        logo_label.grid(row=0, column=0)
+        logo_label.image = logo
 
         # About text
-        py_version = '.'.join(str(i) for i in version_info[:3])
+        py_version = '.'.join(str(i) for i in sys.version_info[:3])
         about_text = ('Easement curve calculator, version {ecv}\n'
                       'Copyright Ewan Macpherson, 2016\n'
                       'Python version {pyv}')
@@ -389,7 +403,6 @@ class SpeedRadius(ttk.LabelFrame):
         dimensions = ttk.Combobox(self, textvariable=self.dim)
         dimensions.config(width=6, values=options, state='readonly')
         dimensions.current(0)
-
         dimensions.grid(row=0, column=2, sticky=tk.W)
 
         ttk.Label(self, text='Minimum radius of curvature ', padding="8 0 0 0"
@@ -591,7 +604,6 @@ class EntryMethod2(EntryM):
     def get_result(self):
         start_track = self.get_coord(self.line1)
         end_track = self.get_coord(self.line2)
-
         track = curve.TrackCurve(curve=start_track, **self.args())
 
         # Check if first two fields are empty - if so, track is straight
@@ -622,8 +634,8 @@ class Result(ttk.Frame):
             'section': ('Curve section', 'w', 14),
             'length': ('Length', 'e', 9),
             'roc': ('Radius of curvature', 'w', 22),
-            'pos_x': ('Position x', 'e', 11),
-            'pos_z': ('Position z', 'e', 11),
+            'pos_x': ('Position X', 'e', 11),
+            'pos_z': ('Position Z', 'e', 11),
             'rotation': ('Rotation', 'e', 10),
             'quad': ('Quad', 'w', 7)
         }
@@ -654,6 +666,7 @@ def main():
     root = tk.Tk()
     root.title('Easement curve calculator')
     root.resizable(height=False, width=False)
+    root.iconbitmap(resource_path('resources/logo.ico'))
 
     padding = '{t} {t} {t} {t}'.format(t=text_length(1))
     MainWindow(root, padding=padding).grid(row=0, column=0)
