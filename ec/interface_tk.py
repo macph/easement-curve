@@ -212,7 +212,7 @@ class MainWindow(ttk.Frame):
             else:
                 self.kph = float(self.sr.speed.get())
 
-            self.minimum_radius = self.sr.minimum.get()
+            self.minimum_radius = float(self.sr.minimum.get())
 
         except ValueError:
             self.refresh_message('Error: Speed tolerance and minimum radius '
@@ -444,7 +444,7 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
     def args(self):
         """ Dict to be used as arguement for the TrackCurve instances. """
         return {'speed': self.master.kph,
-                'minimum': self.master.minimum_radius.get()}
+                'minimum': self.master.minimum_radius}
 
     def reset_values(self):
         """ Resets all entries to their original configuration. """
