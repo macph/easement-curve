@@ -544,9 +544,10 @@ class EntryMethod1(BaseEntryM):
 
         self.start_label('Radius of curvature', 3)
         self.coord_entry(self.radius, 3, 1)
+        ttk.Label(self, text='m').grid(row=3, column=2, sticky=tk.W)
 
-        ttk.Label(self, text='direction', justify=tk.RIGHT
-                  ).grid(row=3, column=3, sticky=tk.W)
+        ttk.Label(self, text='direction', justify=tk.RIGHT,
+                  padding="0 0 4 0").grid(row=3, column=3, sticky=tk.E)
         self.coord_menu(self.direction, ['N/A', 'CW', 'ACW'], 3, 4,
                         default=True)
 
