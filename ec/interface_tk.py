@@ -44,38 +44,18 @@ class MainWindow(ttk.Frame):
 
     def __init__(self, parent, **kwargs):
         super(MainWindow, self).__init__(parent, **kwargs)
+        self.config(padding='{t} {t} {t} {t}'.format(t=text_length(1)))
+        self.grid(row=0, column=0)
 
         self._kph = None
         self.parent = parent
 
-        # Calc method select and description
-        self.sm_frame, self.about = None, None
+        self.about, self.current_entry, self.description, self.msg, self.sr, \
+            self.entries, self.minimum_radius, self.result = (None,) * 8
+
         self.selected_method = tk.StringVar()
-        self.select_method_about(row=0)
-        self.description = MethodDescription(self, row=1)
+        self.body()
 
-        # Enter speed tolerance (in mph or km/h) and minimum radius
-        self.sr = SpeedRadius(self, row=2)
-        self.minimum_radius = None
-
-        # Data entry
-        self.entries = {'1': EntryMethod1(self, row=3),
-                        '2': EntryMethod2(self, row=3)}
-        self.current_entry = self.entries[self.method]
-        # Hiding all widgets not selected
-        for k in [i for i in self.entries.keys() if i != self.method]:
-            self.entries[k].grid_remove()
-
-        # Message
-        ttk.Style().configure('Red.TLabel', foreground="red")
-        self.msg_frame = None
-        self.msg = None
-        self.message_actions(row=4)
-
-        # Results table
-        self.result = Result(self, row=5)
-
-        # Bindings
         self.parent.bind('<Return>', self.calculate)
 
     @property
@@ -105,29 +85,54 @@ class MainWindow(ttk.Frame):
     def kph(self, value):
         self._kph = value
 
-    def select_method_about(self, row):
-        """ Widget for calculation method selection. as well as About button.
-        """
-        self.sm_frame = ttk.Frame(self, padding="6 0 0 0")
-        self.sm_frame.grid(row=row, column=0, sticky=(tk.W, tk.E))
-        self.sm_frame.columnconfigure(2, weight=1)
-
-        ttk.Label(self.sm_frame, text='Select method ').grid(row=0, column=0)
+    def body(self):
+        self.columnconfigure(2, weight=1)
+        self.columnconfigure(4, pad=4)
+        self.rowconfigure(3, pad=4)
+        self.rowconfigure(4, pad=4)
 
         options = ['1', '2']
-        ttk.OptionMenu(self.sm_frame, self.selected_method, options[0], *options,
+        ttk.Label(self, text='Select method ').grid(row=0, column=0)
+        ttk.OptionMenu(self, self.selected_method, options[0], *options,
                        command=self.refresh_method).grid(row=0, column=1)
 
-        ttk.Button(self.sm_frame, text='About', command=self.open_about
-                   ).grid(row=0, column=3, sticky=tk.E)
+        ttk.Button(self, text='About', command=self.open_about
+                   ).grid(row=0, column=4, sticky=tk.E)
+
+        self.description = MethodDescription(self)
+        self.description.grid(row=1, column=0, columnspan=5, sticky=(tk.W, tk.E))
+
+        self.sr = SpeedRadius(self)
+        self.sr.grid(row=2, column=0, columnspan=5, sticky=(tk.W, tk.E))
+
+        self.entries = {'1': EntryMethod1(self, row=3),
+                        '2': EntryMethod2(self, row=3)}
+
+        self.current_entry = self.entries[self.method]
+        # Hiding all widgets not selected
+        for k in [i for i in self.entries.keys() if i != self.method]:
+            self.entries[k].grid_remove()
+
+        ttk.Style().configure('Red.TLabel', foreground="red")
+        self.msg = ttk.Label(self, text='')
+        self.msg.config(width=56, wraplength=text_length(56))
+        self.msg.grid(row=4, column=0, columnspan=3, sticky=tk.W)
+
+        ttk.Button(self, text='Calculate', command=self.calculate
+                   ).grid(row=4, column=3, sticky=(tk.N, tk.E))
+        ttk.Button(self, text='Clear', command=self.clear
+                   ).grid(row=4, column=4, sticky=(tk.N, tk.E))
+
+        self.result = Result(self)
+        self.result.grid(row=5, column=0, columnspan=5)
 
     def open_about(self, event=None):
         """ Opens the About dialog. If it has already been initialised the
             dialog is deiconified.
         """
-        if self.about is not None:
+        try:
             self.about.show()
-        else:
+        except AttributeError:
             self.about = AboutDialog(self.parent)
 
     def refresh_method(self, event=None):
@@ -143,26 +148,7 @@ class MainWindow(ttk.Frame):
         self.current_entry.grid_replace()
 
         # Lowers entry widget below message/actions to ensure correct tab order
-        if self.msg_frame is not None:
-            self.current_entry.lower(self.msg_frame)
-
-    def message_actions(self, row):
-        """ Row for message (all OK or errors in calculations) and Calculate/
-            Clear buttons.
-        """
-        self.msg_frame = ttk.Frame(self, padding="0 4 0 4")
-        self.msg_frame.grid(row=row, column=0, sticky=(tk.W, tk.E))
-        self.msg_frame.columnconfigure(1, weight=1)
-        self.msg_frame.columnconfigure(3, pad=4)
-
-        self.msg = ttk.Label(self.msg_frame, text='')
-        self.msg.config(width=56, wraplength=text_length(56))
-        self.msg.grid(row=0, column=0, sticky=tk.W)
-
-        ttk.Button(self.msg_frame, text='Calculate', command=self.calculate
-                   ).grid(row=0, column=2, sticky=(tk.N, tk.E))
-        ttk.Button(self.msg_frame, text='Clear', command=self.clear
-                   ).grid(row=0, column=3, sticky=(tk.N, tk.E))
+        self.current_entry.lift(self.sr)
 
     def refresh_message(self, message, colour='black'):
         """ Command to refresh the calculation message. """
@@ -199,7 +185,7 @@ class MainWindow(ttk.Frame):
             # TODO: Add another value to display message (eg longer than expected curve).
             result = self.current_entry.get_result()
 
-        except AttributeError as err:
+        except AttributeError:
             self.refresh_message('Error: All fields must be filled in.', 'red')
             raise
 
@@ -209,8 +195,7 @@ class MainWindow(ttk.Frame):
                           coord.CoordError: 'Coordinate error: ',
                           section.TrackError: 'Track section error: ',
                           curve.CurveError: 'Curve calculation error: '}
-            message = err_string[type(err)] + str(err)
-            self.refresh_message(message, 'red')
+            self.refresh_message(err_string[type(err)] + str(err), 'red')
             return
 
         else:
@@ -287,6 +272,7 @@ class MainWindow(ttk.Frame):
             # Setting rotation and quad values to 3 decimal places
             rotation, quad = '{:.3f}'.format(ts.quad[0]), ts.quad[1]
             if rotation in ['0.000', '360.000']:
+                rotation = '0.000'
                 quad = 'N' if quad in ['NE', 'NW'] else 'S'
             elif rotation == '90.000':
                 quad = 'W' if quad in ['NW', 'SW'] else 'E'
@@ -335,7 +321,8 @@ class AboutDialog(tk.Toplevel):
         about_text = ('Easement curve calculator, version {ecv}\n'
                       'Copyright Ewan Macpherson, 2016\n'
                       'Python version {pyv}')
-        ttk.Label(self.container, text=about_text.format(ecv=__version__, pyv=py_version)
+        ttk.Label(self.container,
+                  text=about_text.format(ecv=__version__, pyv=py_version)
                   ).grid(row=0, column=1, sticky=tk.W)
 
         # Close button
@@ -368,12 +355,12 @@ class MethodDescription(ttk.LabelFrame):
               "it is left empty the first track is assumed to be straight.")
     }
 
-    def __init__(self, parent, row):
+    def __init__(self, parent):
         super(MethodDescription, self).__init__(parent)
         self.parent = parent
-        self.config(padding="4 0 0 4",
+        self.config(padding="0 0 0 4",
                     text='Method {} description'.format(self.parent.method))
-        self.grid(row=row, column=0, sticky=(tk.W, tk.E))
+        self.grid(sticky=(tk.W, tk.E))
 
         self.text = None
         self.body()
@@ -395,10 +382,10 @@ class SpeedRadius(ttk.LabelFrame):
         curvature.
     """
 
-    def __init__(self, parent, row):
+    def __init__(self, parent):
         super(SpeedRadius, self).__init__(parent)
         self.config(padding="4 0 0 8", text='Curve setup')
-        self.grid(row=row, column=0, sticky=(tk.W, tk.E))
+        self.grid(sticky=(tk.W, tk.E))
         self.columnconfigure(1, pad=4)
 
         self.speed = tk.StringVar()
@@ -410,7 +397,7 @@ class SpeedRadius(ttk.LabelFrame):
         options = ['mph', 'km/h']
         ttk.Label(self, text='Speed tolerance ', width=16
                   ).grid(row=0, column=0, sticky=tk.W)
-        ttk.Entry(self, textvariable=self.speed, width=6
+        ttk.Entry(self, textvariable=self.speed, width=8
                   ).grid(row=0, column=1, sticky=tk.W)
 
         dimensions = ttk.Combobox(self, textvariable=self.dim)
@@ -420,17 +407,19 @@ class SpeedRadius(ttk.LabelFrame):
 
         ttk.Label(self, text='Minimum radius of curvature ', padding="8 0 0 0"
                   ).grid(row=0, column=3, columnspan=2, sticky=tk.W)
-        ttk.Entry(self, textvariable=self.minimum, width=6
+        ttk.Entry(self, textvariable=self.minimum, width=8
                   ).grid(row=0, column=5, sticky=tk.W)
         ttk.Label(self, text='m', padding="4 0 0 0"
                   ).grid(row=0, column=6, sticky=tk.W)
 
 
-class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
+class BaseEntryM(ttk.LabelFrame, metaclass=ABCMeta):
     """ Common class for entry data table. Must be subclassed. """
 
+    quads = ['NE', 'SE', 'SW', 'NW']
+
     def __init__(self, parent, row):
-        super(EntryM, self).__init__(parent)
+        super(BaseEntryM, self).__init__(parent)
         self.config(text='Curve data', padding="0 0 0 10")
         self.row = row
         self.grid_replace()
@@ -452,7 +441,7 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
 
     def grid_replace(self):
         """ Restores this frame to original position. """
-        self.grid(row=self.row, column=0, sticky=(tk.N, tk.W, tk.E))
+        self.grid(row=self.row, column=0, columnspan=5, sticky=(tk.N, tk.W, tk.E))
 
     def args(self):
         """ Dict to be used as arguement for the TrackCurve instances. """
@@ -530,17 +519,12 @@ class EntryM(ttk.LabelFrame, metaclass=ABCMeta):
             menu.current(0)
 
 
-# TODO: Consider changing TreeView to a grid of Text widgets.
-
-
-class EntryMethod1(EntryM):
+class EntryMethod1(BaseEntryM):
     """ Fits curve with set radius of curvature to a pair of straight tracks
         at an angle. Can set CW/ACW for direction the curve takes.
     """
 
     def get_table(self):
-        quads = ['NE', 'SE', 'SW', 'NW']
-
         self.header('Position X', column=1)
         self.header('Position Z', column=2)
         self.header('Rotation Y', column=3)
@@ -550,13 +534,13 @@ class EntryMethod1(EntryM):
         self.coord_entry(self.line1['x'], 1, 1)
         self.coord_entry(self.line1['z'], 1, 2)
         self.coord_entry(self.line1['r'], 1, 3)
-        self.coord_menu(self.line1['q'], quads, 1, 4)
+        self.coord_menu(self.line1['q'], self.quads, 1, 4)
 
         self.start_label('Second straight track', 2)
         self.coord_entry(self.line2['x'], 2, 1)
         self.coord_entry(self.line2['z'], 2, 2)
         self.coord_entry(self.line2['r'], 2, 3)
-        self.coord_menu(self.line2['q'], quads, 2, 4)
+        self.coord_menu(self.line2['q'], self.quads, 2, 4)
 
         self.start_label('Radius of curvature', 3)
         self.coord_entry(self.radius, 3, 1)
@@ -581,15 +565,13 @@ class EntryMethod1(EntryM):
                                       clockwise=clockwise)
 
 
-class EntryMethod2(EntryM):
+class EntryMethod2(BaseEntryM):
     """ Extends curve from point on track (can be either straight or curved -
         radius of curvature is calculated from additional pair of coordinates)
         to join a straight track.
     """
 
     def get_table(self):
-        quads = ['NE', 'SE', 'SW', 'NW']
-
         self.header('Position X', column=1)
         self.header('Position Z', column=2)
         self.header('Rotation Y', column=3)
@@ -599,7 +581,7 @@ class EntryMethod2(EntryM):
         self.coord_entry(self.line1['x'], 1, 1)
         self.coord_entry(self.line1['z'], 1, 2)
         self.coord_entry(self.line1['r'], 1, 3)
-        self.coord_menu(self.line1['q'], quads, 1, 4)
+        self.coord_menu(self.line1['q'], self.quads, 1, 4)
 
         self.start_label('Additional coordinates', 2)
         self.coord_entry(self.line0['x'], 2, 1)
@@ -611,7 +593,7 @@ class EntryMethod2(EntryM):
         self.coord_entry(self.line2['x'], 3, 1)
         self.coord_entry(self.line2['z'], 3, 2)
         self.coord_entry(self.line2['r'], 3, 3)
-        self.coord_menu(self.line2['q'], quads, 3, 4)
+        self.coord_menu(self.line2['q'], self.quads, 3, 4)
 
     def get_result(self):
         start_track = self.get_coord(self.line1)
@@ -628,10 +610,11 @@ class EntryMethod2(EntryM):
 
 class Result(ttk.Frame):
     """ Results table, based on TreeView widget. """
+    # TODO: Consider changing TreeView to a grid of Text widgets.
 
-    def __init__(self, parent, row):
+    def __init__(self, parent):
         super(Result, self).__init__(parent)
-        self.grid(row=row, column=0, sticky=(tk.W, tk.E))
+        self.grid(sticky=(tk.W, tk.E))
         self.treeview = None
         self.create_table()
 
@@ -679,9 +662,7 @@ def main():
     root.title('Easement curve calculator')
     root.resizable(height=False, width=False)
     root.iconbitmap(resource_path('resources/logo.ico'))
-
-    padding = '{t} {t} {t} {t}'.format(t=text_length(1))
-    MainWindow(root, padding=padding).grid(row=0, column=0)
+    MainWindow(root)
 
     root.mainloop()
 

@@ -27,4 +27,4 @@ exe = EXE(pyz,
           strip=False,
           upx=True,
           console=False,
-          icon='resources/logo.ico')
+          icon='resources\\logo.ico')
