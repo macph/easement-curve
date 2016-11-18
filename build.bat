@@ -6,7 +6,7 @@ REM     -f: Build one file executable.
 REM     -d: Build executable with directory.
 REM     -a: Do both.
 
-set conda_env=ec32
+set ENV=ec32
 
 IF "%~1" == "" (
     @echo No arguments inputted.
@@ -22,21 +22,21 @@ REM All other arguments
 
 :bf
     set CONDA_FORCE_32BIT=1
-    call activate %conda_env%
+    call activate %ENV%
     @echo Creating onefile executable...
     pyinstaller build_f.spec
     goto finish
 
 :bd
     set CONDA_FORCE_32BIT=1
-    call activate %conda_env%
+    call activate %ENV%
     @echo Creating directory bundle...
     pyinstaller build_d.spec
     goto finish
 
 :ba
     set CONDA_FORCE_32BIT=1
-    call activate %conda_env%
+    call activate %ENV%
     @echo Creating directory bundle...
     pyinstaller build_d.spec
     @echo Creating onefile executable...
@@ -44,7 +44,6 @@ REM All other arguments
     goto finish
 
 :finish
-    @echo All done!
     call deactivate
     set CONDA_FORCE_32BIT=
     exit /b
