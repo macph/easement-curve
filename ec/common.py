@@ -7,7 +7,7 @@ import math
 def transform(a, r, b=(0, 0), c=None):
     """ Rotates a point a = (x, y) around axis b = (x0, y0) by r clockwise
         and translates by c = (x1, y1) such that b -> c.
-        a, b, c are all tuples.
+        a, b, c are all tuples of length 2.
         r can be either Bearing object or an int/float in radians.
         By default: b = c = (0, 0), the origin.
         Used with the curve methods.
@@ -20,16 +20,18 @@ def transform(a, r, b=(0, 0), c=None):
     if c is None:
         c = b
     try:
-        new_x = c[x] + (a[x] - b[x]) * math.cos(t) + (a[y] - b[y]) * math.sin(t)
-        new_y = c[y] - (a[x] - b[x]) * math.sin(t) + (a[y] - b[y]) * math.cos(t)
+        new_x = c[x] + (a[x] - b[x]) * math.cos(t) + \
+                (a[y] - b[y]) * math.sin(t)
+        new_y = c[y] - (a[x] - b[x]) * math.sin(t) + \
+                (a[y] - b[y]) * math.cos(t)
     except AttributeError:
         raise AttributeError('a, b, c must be tuples of length 2.')
     return new_x, new_y
 
 
 class Bearing(object):
-    """ Defines the bearing as rotation clockwise from the North (+ve y axis in
-        Cartesian coordinates). Calculations are in radians.
+    """ Defines the bearing as rotation clockwise from the North (+ve y axis
+        in Cartesian coordinates). Calculations are in radians.
     """
 
     def __init__(self, angle, rad=False):
@@ -39,7 +41,6 @@ class Bearing(object):
                 self.rad = float(angle)
             else:
                 self.deg = float(angle)
-
         except (TypeError, ValueError) as err:
             raise ValueError('The bearing needs to be either integer or'
                              'float.', err)
@@ -108,22 +109,22 @@ class Bearing(object):
         return Bearing(abs_rad, rad=True)
 
     def flip(self):
-        """ Returns Bearing object with bearing pointing in opposite direction,
-            eg 30 -> 210, 120 -> 300, 270 -> 90, etc.
+        """ Returns Bearing object with bearing pointing in opposite
+            direction, eg 30 -> 210, 120 -> 300, 270 -> 90, etc.
         """
         return Bearing(self.rad + math.pi, rad=True)
 
-    def nearly_equal(self, other, places=7, flip=False):
+    def nearly_equal(self, other, places=7, both=False):
         """ Checks if the two Bearing objects are almost equal, as errors can
             creep into conversion calculations. Default of 5 decimal places.
-            If flip: tests both original and flipped bearing of other.
+            If both: tests both original and flipped bearing of other.
         """
         try:
             org_value = other.rad
-            flip_value = other.flip().rad if flip else None
+            flip_value = other.flip().rad if both else None
         except AttributeError:
             org_value = other
-            flip_value = (math.pi + other) % (2*math.pi)
+            flip_value = self.flip()
 
         if self.rad == org_value or self.rad == flip_value:
             return True
@@ -133,9 +134,8 @@ class Bearing(object):
 
 
 class LinearEquation(object):
-    """ Defines a linear equation in Cartesian coordinates, as well as finding
-        the distance between the line and a point, and finding the intersect
-        between two lines.
+    """ Defines a linear equation in Cartesian coordinates with the bearing r
+        through a point (u, v).
     """
 
     def __init__(self, bearing, point):
@@ -159,7 +159,7 @@ class LinearEquation(object):
 
     def move(self, length):
         """ Returns coordinates of point a set length away from initial
-            coordinates on line. If length is negative the point is behind
+            coordinates along line. If length is negative the point is behind
             the initial coordinates, in the opposite direction to the bearing.
         """
         return (self.u + length * math.sin(self.b),
@@ -192,19 +192,20 @@ class LinearEquation(object):
             raise AttributeError("'other' must also be a LinearEquation "
                                  "object.") from err
 
-        def math_cot(t): return 1 / math.tan(t)
+        def cot(t): return 1 / math.tan(t)
 
         u1, v1, b1 = self.u, self.v, self.b
         u2, v2, b2 = other.u, other.v, other.b
 
-        # Can't use either cot and tan at specific angles, so cover with alternative formulae
+        # Can't use either cot and tan at specific angles, so cover with
+        # alternative formulae
         if b1 % (math.pi/2) == 0 and b2 % (math.pi/2) == 0:
-            # Since can't be parallel, must be perpendicular; can just use coords
+            # Must be perpendicular; can just use coords
             x, y = (u1, v2) if b1 in [0, math.pi] else (u2, v1)
         else:
             try:
-                x = (u1*math_cot(b1) - u2*math_cot(b2) + v2 - v1) \
-                    / (math_cot(b1) - math_cot(b2))
+                x = (u1*cot(b1) - u2*cot(b2) + v2 - v1) \
+                    / (cot(b1) - cot(b2))
             except ZeroDivisionError:
                 x = (u2*math.tan(b1) + u1*math.tan(b2)
                      + (v1-v2)*math.tan(b1)*math.tan(b2)) \
@@ -213,11 +214,12 @@ class LinearEquation(object):
                 y = (v1*math.tan(b1) - v2*math.tan(b2) + u2 - u1) \
                     / (math.tan(b1) - math.tan(b2))
             except ZeroDivisionError:
-                y = (v2*math_cot(b1) + v1*math_cot(b2)
-                     + (u1-u2)*math_cot(b1)*math_cot(b2)) \
-                    / (math_cot(b2) - math_cot(b1))
+                y = (v2*cot(b1) + v1*cot(b2)
+                     + (u1-u2)*cot(b1)*cot(b2)) \
+                    / (cot(b2) - cot(b1))
 
         return x, y
 
     def __str__(self):
-        return 'LinearEquation at coordinates ({0}, {1}) with bearing {2}'.format(self.u, self.v, self.b)
+        return 'LinearEquation at coordinates ({0}, {1}) with bearing {2}' \
+               ''.format(self.u, self.v, self.b)

@@ -69,10 +69,12 @@ class TrackCoord(object):
     @property
     def quad(self):
         bearing = self._bearing.deg
-        quadrants = {0: (bearing, Q.NE.name),
-                     90: (180 - bearing, Q.SE.name),
-                     180: (bearing - 180, Q.SW.name),
-                     270: (360 - bearing, Q.NW.name)}
+        quadrants = {
+            0: (bearing, Q.NE.name),
+            90: (180 - bearing, Q.SE.name),
+            180: (bearing - 180, Q.SW.name),
+            270: (360 - bearing, Q.NW.name)
+        }
 
         for r in quadrants.keys():
             if r <= bearing < r + 90:
@@ -94,10 +96,12 @@ class TrackCoord(object):
             raise ValueError('The quad property requires two values: '
                              'rotation and quadrant.') from err
 
-        quadrants = {Q.NE: abs(rotation),
-                     Q.SE: 180 - abs(rotation),
-                     Q.SW: 180 + abs(rotation),
-                     Q.NW: 360 - abs(rotation)}
+        quadrants = {
+            Q.NE: abs(rotation),
+            Q.SE: 180 - abs(rotation),
+            Q.SW: 180 + abs(rotation),
+            Q.NW: 360 - abs(rotation)
+        }
 
         try:
             if abs(rotation) <= 90:
@@ -124,9 +128,9 @@ class TrackCoord(object):
             return 0, 'straight'
 
     @staticmethod
-    def set_radius_clockwise(variable, stored_variable):
+    def set_radius_clockwise(var, stored_var):
         raise AttributeError('Property {0} cannot be set on its own. Use the '
-                             '{1} property.'.format(variable, stored_variable))
+                             '{1} property.'.format(var, stored_var))
 
     @property
     def curvature(self):

@@ -14,7 +14,7 @@ class TrackError(Exception):
 class TrackSection(object):
     """ Section of track, either straight, curve with constant curvature
         or easement curve. Takes a set of coordinates as input, and another
-        set of coordinates as output, perhaps to join with another track.
+        set of coordinates as output, to join with another track.
     """
     # Base measurements for normalisation
     n_speed, n_radius, n_length = 200, 800, 298.507
