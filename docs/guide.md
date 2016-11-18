@@ -12,10 +12,10 @@ Starting up the GUI gives you this:
 ![GUI](images/gui.jpg)
 
 - There are two methods of calculating easement curves - you can select them with the `Select method` menu. Below is a short description of what each method does.
-- Then there is the speed tolerance and minimum radius. The speed tolerance (which can either be in mph or km/h) determines how long the easement curves are. The minimum radius of curvature sets an upper limit on the curvature.
-- The Curve data section is where you enter the data needed to recreate the tracks and curves. `X, Z, R, Q` refers to the *x* and *z* axis coordinates, the *y*-axis rotation and the quadrant - more on that later.
+- Then there is the speed tolerance and minimum radius. The speed tolerance,which can either be in mph or km/h, determines how long the easement curves are. The minimum radius of curvature sets an upper limit on the curvature.
+- The Curve data section is where you enter the data needed to recreate the tracks and curves.
 - The `Clear` button clears away all the fields in the 'Curve data' section. The `Calculate` button does what it says on the tin.
-- At the bottom is the table which gives you the easement curve coordinates you need to recreate the curve in Train Simulator.
+- At the bottom is the table which gives you the curve coordinates you need to recreate the curve in Train Simulator.
 
 Let's get started with some examples of joining up tracks with easement curves.
 
@@ -25,7 +25,7 @@ Suppose we have two straight tracks, and we want to create a section with easeme
 
 ![Two straight tracks](images/ig01.jpg)
 
-1. As we need a specific radius of curvature, we select method 1. We double click on the first track - it doesn't matter where exactly. The coordinates rolls out.
+1. As we need a specific radius of curvature, we select method 1. We double click on the first track - it doesn't matter where exactly, as it is the straight line which is used for the calculations. The coordinates rolls out.
 
    ![Clicking on track](images/ig02_1.jpg)
 

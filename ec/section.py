@@ -67,7 +67,7 @@ class TrackSection(object):
         # Derivatives of the polynomials from fresnel()
         xp, zp = a**2*t**2, 1 - a**4*t**4 / 2
 
-        return math.acos(zp / math.hypot(xp, zp))
+        return math.asin(xp / math.hypot(xp, zp))
 
     def easement_curvature(self, length):
         """ Returns the signed curvature at a length on the easement curve
