@@ -9,17 +9,71 @@ from ec import __version__, coord, section, curve
 
 # TODO: Fix any problems and add all text.
 
-
-help_text = """
-This is the help text.
-"""
-
-
 class InterfaceException(Exception):
     pass
 
 
 class Interface(object):
+    """ Command line interface. """
+
+    help_text = """
+    -- Easement curve calculator --
+    Command line interface, version {ver}
+
+    This is a tool for calculating track curves with easement sections in Train Simulator 2016.
+    Whilst TS has the ability to construct easement curves it is unable to join up tracks
+    automatically with the sections, leading to a lot of trial and error work.
+
+    -- Starting up --
+    To start with the speed tolerance and minimum radius of curvature of the track you want to use
+    are required. They can be inputted in the format
+        80 mph 500
+    where the first part is the speed tolerance followed by units (can either be mph or km/h), and
+    the second part is the minimum radius of curvature, in metres.
+
+    You are then able to input the curve data. Each coordinate is in the form
+        (123.456 123.456 78.901 NE)
+    which are the X position, the Z position, the Y-axis rotation and the compass quadrant the
+    track is aligned in. The first three can be found by double clicking the correct position
+    on the track, bringing up the transform dialog with these coordinates. The quadrant can be
+    found by looking down the track and checking what the bearing is on the compass - if it is
+    between 0 and 90, it would be NE; if it is between 90 and 180, it would be SE, and so on.
+
+    There are three methods for calculating curves. Type in 'help method 1' for method 1, and
+    so on.
+    """.format(ver=__version__)
+
+    help_method_1 = """
+    -- Method 1 --
+    The first method takes in coordinates from two straight tracks, and calculates a curve with
+    easement sections joining up the two tracks with a set radius of curvature. This method can be
+    invoked by inputting the coordinates in the form
+        (X1 Z1 R1 Q1) (X2 Z2 R2 Q2) RADIUS
+    where X1, Z2, R1 and Q1 are the coordinates for the first track you want to start on, and
+    X2, Z2, R2, Q2 are for the second track you want to end the curve on. RADIUS is the radius of
+    curvature set for the curve.
+    """
+
+    help_method_2 = """
+    -- Method 2 --
+    The second method extends a curve from the straight track at the first coordinate, to join with
+    another straight track. It can be invoked by inputting the coordinates in the form
+        (X1 Z1 R1 Q1) (X2 Z2 R2 Q2)
+    Note that there is no radius of curvature specified. X1, Z2, R1 and Q1 are the coordinates for
+    the first track you want to start on, and X2, Z2, R2, Q2 are for the second track you want to
+    end the curve on.
+    """
+
+    help_method_3 = """
+    -- Method 3 --
+    The third method extends a curve from a curved track to join with a straight track. It requires
+    a third set of coordinates, which is necessary for an accurate radius of curvature (TS is only
+    able to show them accurate to 1 decimal place). It can be invoked by
+        (X0 Z0 R0 Q0) (X1 Z1 R1 Q1) (X2 Z2 R2 Q2)
+    where coordinates 1 and 2 are the same as in method 2, but 0 is the additional point used to
+    define the radius of curvature. It can be anywhere on the same curve as coordinate 1, just as
+    long as it is of the same radius of curvature.
+    """
 
     re_speed_radius = re.compile('^([.,\d]+)\s*([/\w]+)\s+(\d+)\s*$')
     re_method_1 = re.compile('^\(([^()]+)\)[\s,]*\(([^()]+)\)[\s,]*([\d]+)[\s,]*$')
@@ -94,8 +148,8 @@ class Interface(object):
 
     def run(self):
         os.system('cls')
-        print('', 'Easement curve calculator, version {0}'.format(__version__), '',
-              sep='\n')
+        print('', 'Easement curve calculator, version {0}'.format(__version__),
+              '', sep='\n')
         # Get minimum radius and tolerance
         print("Start with the speed tolerance and minimum radius of curvature "
               "for the curves\nyou want to calculate, like for example "
@@ -203,7 +257,8 @@ class Interface(object):
                 end_track = self.get_coord(find_data.group(3))
 
                 track = curve.TrackCurve(curve=start_track, **curve_args)
-                result = track.curve_fit_point(other=end_track, add_point=pre_track)
+                result = track.curve_fit_point(other=end_track,
+                                               add_point=pre_track)
 
             else:
                 raise InterfaceException('An invalid method was used')
@@ -220,13 +275,18 @@ class Interface(object):
 
         print(self.print_curve_data(result), '\n')
 
-    @staticmethod
-    def get_input(prompt):
+    def get_input(self, prompt):
         str_input = input(prompt)
-        if str_input.upper() in ['QUIT', 'EXIT', 'EXIT()']:
+        if str_input.lower() in ['quit', 'exit', 'exit()']:
             sys.exit(0)
-        elif str_input.upper() == 'HELP':
-            print(help_text)
+        elif str_input.lower() == 'help':
+            print(self.help_text)
+        elif str_input.lower() in ['help 1', 'help method 1']:
+            print(self.help_method_1)
+        elif str_input.lower() in ['help 2', 'help method 2']:
+            print(self.help_method_2)
+        elif str_input.lower() in ['help 3', 'help method 3']:
+            print(self.help_method_3)
         else:
             return str_input
 
@@ -260,7 +320,8 @@ class Interface(object):
         """ Prints on screen the data obtained from creating a curve with
             easements in a table.
         """
-        ls_headers = ['name', 'length', 'roc', 'position', 'bearing', 'rotation']
+        ls_headers = ['name', 'length', 'roc', 'position', 'bearing',
+                      'rotation']
         headers = {
             'name': 'Curve Section', 'length': 'Length',
             'roc': 'Radius of curvature', 'position': 'Position (x, z)',
@@ -353,7 +414,8 @@ class Interface(object):
         length_max = length_max if length_max >= 6 else 6
         for row in table_data:
             if row['length'] != '':
-                row['length'] = '{l:{ml}.1f}'.format(l=row['length'], ml=length_max)
+                row['length'] = '{l:{ml}.1f}'.format(l=row['length'],
+                                                     ml=length_max)
 
         # Calculating the max column widths
         column_width = {}
