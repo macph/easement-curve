@@ -1,5 +1,5 @@
 # MIT License, copyright Ewan Macpherson, 2016; see LICENCE in root directory
-# Main script function
+# Main script for package, gives choice to start up either CLI or TK interface.
 
 import sys
 import ec.interface_tk

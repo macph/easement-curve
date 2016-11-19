@@ -9,22 +9,26 @@ import tkinter as tk
 import tkinter.font as tkfont
 import tkinter.ttk as ttk
 
-from ec import __version__, coord, section, curve
+from ec import __version__, base_path, coord, section, curve
 
 # TODO: Add gettext support. Next version
 # TODO: Consider adding speed tolerance profiles, and/or settings. Next version
 
 
 def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
+    """ Get absolute path to resource from project root directory, works for
+        dev and for PyInstaller
+    """
     # stackoverflow.com/questions/7674790/bundling-data-files-with-pyinstaller-onefile
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
+        abs_path = sys._MEIPASS
     except AttributeError:
-        base_path = os.path.abspath(".")
+        # Assume that root directory is one above the module directory this
+        # script resides in
+        abs_path = base_path
 
-    return os.path.join(base_path, relative_path)
+    return os.path.join(abs_path, relative_path)
 
 
 def text_length(length, font='TkDefaultFont'):
@@ -100,7 +104,8 @@ class MainWindow(ttk.Frame):
                    ).grid(row=0, column=4, sticky=tk.E)
 
         self.description = MethodDescription(self)
-        self.description.grid(row=1, column=0, columnspan=5, sticky=(tk.W, tk.E))
+        self.description.grid(row=1, column=0, columnspan=5,
+                              sticky=(tk.W, tk.E))
 
         self.sr = SpeedRadius(self)
         self.sr.grid(row=2, column=0, columnspan=5, sticky=(tk.W, tk.E))
@@ -182,7 +187,6 @@ class MainWindow(ttk.Frame):
             return
 
         try:
-            # TODO: Add another value to display message (eg longer than expected curve).
             result = self.current_entry.get_result()
 
         except AttributeError:
@@ -286,6 +290,7 @@ class MainWindow(ttk.Frame):
 class AboutDialog(tk.Toplevel):
     """ Extra dialog for showing About info. """
 
+    # TODO: Opening bitmap fails when running 'python EC'.
     def __init__(self, parent):
         super(AboutDialog, self).__init__(parent)
         self.parent = parent
@@ -319,7 +324,7 @@ class AboutDialog(tk.Toplevel):
         # About text
         py_version = '.'.join(str(i) for i in sys.version_info[:3])
         about_text = ('Easement curve calculator, version {ecv}\n'
-                      'Copyright Ewan Macpherson, 2016\n'
+                      '© Ewan Macpherson, 2016\n'
                       'Python version {pyv}')
         ttk.Label(self.container,
                   text=about_text.format(ecv=__version__, pyv=py_version)
@@ -441,7 +446,8 @@ class BaseEntryM(ttk.LabelFrame, metaclass=ABCMeta):
 
     def grid_replace(self):
         """ Restores this frame to original position. """
-        self.grid(row=self.row, column=0, columnspan=5, sticky=(tk.N, tk.W, tk.E))
+        self.grid(row=self.row, column=0, columnspan=5,
+                  sticky=(tk.N, tk.W, tk.E))
 
     def args(self):
         """ Dict to be used as arguement for the TrackCurve instances. """
