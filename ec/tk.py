@@ -4,6 +4,7 @@
 from abc import ABCMeta, abstractmethod
 import os
 import sys
+import webbrowser
 
 import tkinter as tk
 import tkinter.font as tkfont
@@ -50,14 +51,13 @@ class MainWindow(ttk.Frame):
         super(MainWindow, self).__init__(parent, **kwargs)
         self.config(padding='{t} {t} {t} {t}'.format(t=text_length(1)))
         self.grid(row=0, column=0)
-
-        self._kph = None
         self.parent = parent
 
+        self._kph = None
+        self._method = tk.StringVar()
         self.about, self.current_entry, self.description, self.msg, self.sr, \
             self.entries, self.minimum_radius, self.result = (None,) * 8
 
-        self.selected_method = tk.StringVar()
         self.body()
 
         self.parent.bind('<Return>', self.calculate)
@@ -65,7 +65,7 @@ class MainWindow(ttk.Frame):
     @property
     def method(self):
         """ Retrieves method selection. """
-        return self.selected_method.get()
+        return self._method.get()
 
     @method.setter
     def method(self):
@@ -97,7 +97,7 @@ class MainWindow(ttk.Frame):
 
         options = ['1', '2']
         ttk.Label(self, text='Select method ').grid(row=0, column=0)
-        ttk.OptionMenu(self, self.selected_method, options[0], *options,
+        ttk.OptionMenu(self, self._method, options[0], *options,
                        command=self.refresh_method).grid(row=0, column=1)
 
         ttk.Button(self, text='About', command=self.open_about
@@ -313,11 +313,12 @@ class AboutDialog(tk.Toplevel):
         self.bind('<Return>', self.hide)
 
     def body(self):
+        ttk.Style().configure('HL.TLabel', foreground='blue')
         # Creating logo image
         logo_file = resource_path('resources/logo.png')
         logo = tk.PhotoImage(file=logo_file)
         logo_label = ttk.Label(self.container, image=logo)
-        logo_label.grid(row=0, column=0)
+        logo_label.grid(row=0, column=0, rowspan=2)
         logo_label.image = logo
 
         # About text
@@ -329,14 +330,25 @@ class AboutDialog(tk.Toplevel):
                   text=about_text.format(ecv=__version__, pyv=py_version)
                   ).grid(row=0, column=1, sticky=tk.W)
 
+        # Link to GitHub
+        github = ttk.Label(self.container, text='GitHub page',
+                           style='HL.TLabel', cursor="hand2")
+        github.grid(row=1, column=1, sticky=tk.W)
+        github.bind('<Button-1>', self.open_github)
+
         # Close button
         ttk.Button(self.container, text='Close', command=self.hide
-                   ).grid(row=1, column=0, columnspan=2, sticky=tk.E)
+                   ).grid(row=2, column=0, columnspan=2, sticky=tk.E)
 
     def move(self, offset=30):
         """ Moves this window to position relative to parent window. """
         x, y = self.parent.winfo_rootx(), self.parent.winfo_rooty()
         self.geometry('+{x:d}+{y:d}'.format(x=x+offset, y=y+offset))
+
+    @staticmethod
+    def open_github(event=None):
+        github_page = "http://www.github.com/macph/easement-curve"
+        webbrowser.open_new(github_page)
 
     def hide(self, event=None):
         self.withdraw()

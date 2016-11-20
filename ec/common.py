@@ -20,10 +20,8 @@ def transform(a, r, b=(0, 0), c=None):
     if c is None:
         c = b
     try:
-        new_x = c[x] + (a[x] - b[x]) * math.cos(t) + \
-                (a[y] - b[y]) * math.sin(t)
-        new_y = c[y] - (a[x] - b[x]) * math.sin(t) + \
-                (a[y] - b[y]) * math.cos(t)
+        new_x = c[x] + (a[x]-b[x]) * math.cos(t) + (a[y]-b[y]) * math.sin(t)
+        new_y = c[y] - (a[x]-b[x]) * math.sin(t) + (a[y]-b[y]) * math.cos(t)
     except AttributeError:
         raise AttributeError('a, b, c must be tuples of length 2.')
     return new_x, new_y
