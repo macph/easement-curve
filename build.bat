@@ -2,48 +2,55 @@
 
 REM Batch script to automate building executables with 32-bit Conda Python.
 REM Environment name is 'ec32'.
-REM     -f: Build one file executable.
-REM     -d: Build executable with directory.
-REM     -a: Do both.
 
 set ENV=ec32
+set BUILD=build_f.spec
+set ENCODING=850
+set VERPATCH=C:\Utilities\verpatch\verpatch
 
 IF "%~1" == "" (
-    @echo No arguments inputted.
+    goto build
     exit /b
 )
 
-IF "%~1" == "-f" goto bf
-IF "%~1" == "-d" goto bd
-IF "%~1" == "-a" goto ba
+IF "%~1" == "--add" (
+    IF "%~2" == "" goto err
+    IF "%~3" == "" goto err
+    goto build
+    goto add
+    exit /b
+)
 
-REM All other arguments
-@echo Wrong arguments inputted.
-
-:bf
+:build
     set CONDA_FORCE_32BIT=1
     call activate %ENV%
     @echo Creating onefile executable...
-    pyinstaller build_f.spec
-    goto finish
+    pyinstaller %BUILD%
 
-:bd
-    set CONDA_FORCE_32BIT=1
-    call activate %ENV%
-    @echo Creating directory bundle...
-    pyinstaller build_d.spec
-    goto finish
-
-:ba
-    set CONDA_FORCE_32BIT=1
-    call activate %ENV%
-    @echo Creating directory bundle...
-    pyinstaller build_d.spec
-    @echo Creating onefile executable...
-    pyinstaller build_f.spec
-    goto finish
-
-:finish
     call deactivate
     set CONDA_FORCE_32BIT=
+
+:err
+    @echo Need 2nd and 3rd arguments for file and product versions respectively.
     exit /b
+
+:add
+    @echo Setting encoding to UTF-8...
+    REM If using this script - be aware your PC's cmd may use a different encoding.
+    REM Run 'chcp' to find out, and set ENCODING.
+    chcp 65001
+
+    set FILEDESCR=/s desc "Tool for calculating easement curves in TS"
+    set FILEVER="%~2"
+    set INTERNAL=/s title "ec"
+    set COMPANY=/s company "macph"
+    set COPYRIGHT=/s copyright "© 2016 Ewan Macpherson"
+    set ORIGINAL=/s OriginalFilename "ECCalc.exe"
+    set PRODUCT=/s product "Easement curve calculator"
+    set PRODVER=/pv "%~3"
+
+    @echo Adding version file...
+    %VERPATCH% /va dist\ECCalc.exe %FILEVER% %FILEDESCR% %INTERNAL% %COMPANY% %COPYRIGHT% %ORIGINAL% %PRODUCT% %PRODVER%
+
+    @echo Resetting encoding...
+    chcp %ENCODING%
