@@ -10,7 +10,7 @@ Train Simulator (TS2016) has a route editor and supports creation of easement cu
 
 ## Installation
 
-Everything is packaged in a single `.exe` file - go to releases [here](releases) and download the latest release. There is no need for installation.
+Everything is packaged in a single `.exe` file - go to releases [here](releases/latest) and download the latest release. There is no need for installation.
 
 ### Compiling from source
 
