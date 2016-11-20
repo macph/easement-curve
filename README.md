@@ -12,22 +12,9 @@ Train Simulator (TS2016) has a route editor and supports creation of easement cu
 
 Everything is packaged in a single `.exe` file - go to releases [here](releases) and download the latest release. There is no need for installation.
 
-### Run with Python
-
-Alternatively, you can run the source code directly with Python. You need a Python 3.5 distribution, which you can download from the [Python website](https://www.python.org/downloads/). Earlier Python 3 versions may work, but the program is not compatible with Python 2.7 or earlier versions.
-
-Go to releases [here](releases) and download the source code in `.zip` format. In the folder where you have downloaded the zip file, type in the command prompt
-```
-python easement-curve-0.5
-```
-where `easement-curve-0.5` is the name of the .zip file you have downloaded - you do not need to extract it. If you prefer to work with the command line interface, add the `cli` argument:
-```
-python easement-curve-0.5 cli
-```
-
 ### Compiling from source
 
-If you want to create the executable for yourself, you need a Python 3.5 distribution as above, and `PyInstaller`, a Python module. Once you have Python 3.5 installed, install PyInstaller by typing in the command prompt
+If you want to create the executable for yourself, you need a Python 3.5 distribution which you can download from the [Python website](https://www.python.org/downloads/), and `PyInstaller`, a Python module. Once you have Python 3.5 installed, install PyInstaller by typing in the command prompt
 ```
 pip install pyinstaller
 ```

@@ -1,20 +1,11 @@
 # MIT License, copyright Ewan Macpherson, 2016; see LICENCE in root directory
-# Main script for package, gives choice to start up either CLI or TK interface.
+# Main script for package.
 
-import sys
-import ec.interface_tk
-import ec.interface_cli
+import ec.tk
 
 
 def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-    if not argv or argv == ['tk']:
-        ec.interface_tk.main()
-    elif argv == ['cli']:
-        ec.interface_cli.Interface()
-    else:
-        print("Invalid arguments. Need 'cli' or 'tk'.")
+    ec.tk.main()
 
 if __name__ == '__main__':
     main()

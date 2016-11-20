@@ -290,7 +290,6 @@ class MainWindow(ttk.Frame):
 class AboutDialog(tk.Toplevel):
     """ Extra dialog for showing About info. """
 
-    # TODO: Opening bitmap fails when running 'python EC'.
     def __init__(self, parent):
         super(AboutDialog, self).__init__(parent)
         self.parent = parent
