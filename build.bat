@@ -21,6 +21,10 @@ IF "%~1" == "--add" (
     exit /b
 )
 
+:err
+    @echo Need 2nd and 3rd arguments for file and product versions respectively.
+    exit /b
+
 :build
     set CONDA_FORCE_32BIT=1
     call activate %ENV%
@@ -29,10 +33,6 @@ IF "%~1" == "--add" (
 
     call deactivate
     set CONDA_FORCE_32BIT=
-
-:err
-    @echo Need 2nd and 3rd arguments for file and product versions respectively.
-    exit /b
 
 :add
     @echo Setting encoding to UTF-8...

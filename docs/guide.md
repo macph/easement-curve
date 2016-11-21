@@ -4,6 +4,7 @@
 - [Joining two straight tracks][2]
 - [Extending a track to join another][3]
 - [Other ways of using the curve data][4]
+- [Reference](reference.md)
 
 ## Introduction
 [1]: #introduction
@@ -131,4 +132,4 @@ The above instructions show one way to recreate the curve in Train Simulator, bu
 
 It is for that reason the results are laid out in a table with all the data required rather than a list of instructions.
 
-Another way of laying down the track would be to look at the coordinates for the start and the end of the static curve, and lay down two straight tracks whose ends match up with those coordinates. Then, with Train Simulator's joining tool, the static curve is formed by joining those tracks without easements. The straight tracks are deleted and new easement curves created in place, both of which should join up with the starting and ending tracks without problems.
+One other way of laying down the track would be to look at the coordinates for the start and the end of the static curve, and lay down two straight tracks whose ends match up with those coordinates. Then, with Train Simulator's joining tool, the static curve is formed by joining those tracks without easements. The straight tracks are deleted and new easement curves created in place, both of which should join up with the starting and ending tracks without problems.
