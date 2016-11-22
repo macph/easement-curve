@@ -4,13 +4,12 @@
 from abc import ABCMeta, abstractmethod
 import os
 import sys
-import webbrowser
 
 import tkinter as tk
 import tkinter.font as tkfont
 import tkinter.ttk as ttk
 
-from ec import __version__, base_path, coord, section, curve
+from ec import base_path, coord, section, curve
 
 # TODO: Add gettext support. Next version
 # TODO: Consider adding speed tolerance profiles, and/or settings. Next version
@@ -55,8 +54,8 @@ class MainWindow(ttk.Frame):
 
         self._kph = None
         self._method = tk.StringVar()
-        self.about, self.current_entry, self.description, self.msg, self.sr, \
-            self.entries, self.minimum_radius, self.result = (None,) * 8
+        self.current_entry, self.description, self.msg, self.sr, \
+            self.entries, self.minimum_radius, self.result = (None,) * 7
 
         self.body()
 
@@ -100,9 +99,6 @@ class MainWindow(ttk.Frame):
         ttk.OptionMenu(self, self._method, options[0], *options,
                        command=self.refresh_method).grid(row=0, column=1)
 
-        ttk.Button(self, text='About', command=self.open_about
-                   ).grid(row=0, column=4, sticky=tk.E)
-
         self.description = MethodDescription(self)
         self.description.grid(row=1, column=0, columnspan=5,
                               sticky=(tk.W, tk.E))
@@ -130,15 +126,6 @@ class MainWindow(ttk.Frame):
 
         self.result = Result(self)
         self.result.grid(row=5, column=0, columnspan=5)
-
-    def open_about(self, event=None):
-        """ Opens the About dialog. If it has already been initialised the
-            dialog is deiconified.
-        """
-        try:
-            self.about.show()
-        except AttributeError:
-            self.about = AboutDialog(self.parent)
 
     def refresh_method(self, event=None):
         """ Command to refresh method description and data entries depending
@@ -285,77 +272,6 @@ class MainWindow(ttk.Frame):
                          pos_x, pos_z, rotation, quad))
 
         return data
-
-
-class AboutDialog(tk.Toplevel):
-    """ Extra dialog for showing About info. """
-
-    def __init__(self, parent):
-        super(AboutDialog, self).__init__(parent)
-        self.parent = parent
-
-        # Setting up the window, should be transient (ie not full window)
-        self.title('About')
-        self.transient(parent)
-        self.resizable(False, False)
-        self.iconbitmap(resource_path('resources/logo.ico'))
-        self.move()    # Moving window relative to parent window
-        self.focus_set()    # Switching focus to this window
-
-        # The window body
-        self.container = ttk.Frame(self, padding="5 5 5 5")
-        self.container.grid(row=0, column=0)
-        self.body()
-
-        # What happens when you do something
-        self.protocol('WM_DELETE_WINDOW', self.hide)
-        self.bind('<Escape>', self.hide)
-        self.bind('<Return>', self.hide)
-
-    def body(self):
-        ttk.Style().configure('HL.TLabel', foreground='blue')
-        # Creating logo image
-        logo_file = resource_path('resources/logo.png')
-        logo = tk.PhotoImage(file=logo_file)
-        logo_label = ttk.Label(self.container, image=logo)
-        logo_label.grid(row=0, column=0, rowspan=2)
-        logo_label.image = logo
-
-        # About text
-        py_version = '.'.join(str(i) for i in sys.version_info[:3])
-        about_text = ('Easement curve calculator, version {ecv}\n'
-                      '© Ewan Macpherson, 2016\n'
-                      'Python version {pyv}')
-        ttk.Label(self.container,
-                  text=about_text.format(ecv=__version__, pyv=py_version)
-                  ).grid(row=0, column=1, sticky=tk.W)
-
-        # Link to GitHub
-        github = ttk.Label(self.container, text='GitHub page',
-                           style='HL.TLabel', cursor="hand2")
-        github.grid(row=1, column=1, sticky=tk.W)
-        github.bind('<Button-1>', self.open_github)
-
-        # Close button
-        ttk.Button(self.container, text='Close', command=self.hide
-                   ).grid(row=2, column=0, columnspan=2, sticky=tk.E)
-
-    def move(self, offset=30):
-        """ Moves this window to position relative to parent window. """
-        x, y = self.parent.winfo_rootx(), self.parent.winfo_rooty()
-        self.geometry('+{x:d}+{y:d}'.format(x=x+offset, y=y+offset))
-
-    @staticmethod
-    def open_github(event=None):
-        github_page = "http://www.github.com/macph/easement-curve"
-        webbrowser.open_new(github_page)
-
-    def hide(self, event=None):
-        self.withdraw()
-
-    def show(self, event=None):
-        self.move()
-        self.deiconify()
 
 
 class MethodDescription(ttk.LabelFrame):
