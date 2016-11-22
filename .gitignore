@@ -56,7 +56,7 @@ ENV/
 .idea/
 
 # Working files
-workings/
+temp/
 
 # Windows image file caches
 Thumbs.db
