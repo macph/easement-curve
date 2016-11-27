@@ -7,14 +7,23 @@ import math
 from ec.common import Bearing, LinearEquation
 from ec.section import TrackSection
 
-# TODO: Consider splitting static curves into 500.0 m sections.
-
 
 class CurveError(Exception):
     pass
 
 
 class TrackCurve(TrackSection):
+    """ Group of track sections. Like TrackSection, takes a set of coordinates
+        as input but utilises methods to create curves with track sections
+        joining up tracks.
+        Additonal parameter: 'split' option for whether to split the static
+        curve section into multiple 500 m sections.
+    """
+    max_length = 500
+
+    def __init__(self, curve, minimum, speed, split=True):
+        super(TrackCurve, self).__init__(curve, minimum, speed)
+        self.split_static = split
 
     def ts_easement_curve(self, curve, end_curv):
         """ Creates a TrackSection instance and returns its easement_curve
@@ -23,12 +32,12 @@ class TrackCurve(TrackSection):
         ts = TrackSection(curve, self.minimum_radius, self.speed_tolerance)
         return ts.easement_curve(end_curv)
 
-    def ts_static_curve(self, curve, angle_diff):
+    def ts_static_curve(self, curve, angle_diff=None, arc_length=None):
         """ Creates a TrackSection instance and returns its static_curve
             method with 'angle' type, for operational and reading ease.
         """
         ts = TrackSection(curve, self.minimum_radius, self.speed_tolerance)
-        return ts.static_curve(angle_diff)
+        return ts.static_curve(angle_diff, arc_length)
 
     def find_diff_angle(self, other, apply_cw=False):
         """ Finds the difference in bearing between the two tracks with
@@ -140,14 +149,29 @@ class TrackCurve(TrackSection):
                 'The easement curves are too long to fit within the curve; '
                 'consider increasing the radius of curvature.')
 
-        # Constructs the 3 sections of curve
+        # Construct the 3 sections of curve
         ec1 = self.ts_easement_curve(self.start, curvature)
-        static = self.ts_static_curve(ec1, static_curve_angle)
-        ec2 = self.ts_easement_curve(static, 0)
+        static_length = abs(static_curve_angle / curvature)
+        if not self.split_static or static_length <= self.max_length:
+            # Single static section
+            static = self.ts_static_curve(ec1, static_curve_angle)
+            ec2 = self.ts_easement_curve(static, 0)
+            # Assembling into a list and copying to ensure no changed values -
+            # they depend on each other
+            curve_data = [copy(s) for s in [self.start, ec1, static, ec2]]
 
-        # Assembling into a list and copying to ensure no changed values -
-        # they depend on each other
-        curve_data = [copy(s) for s in [self.start, ec1, static, ec2]]
+        else:
+            sections = math.floor(static_length/self.max_length)
+            static = []
+            for s in range(sections):
+                next_section = static[s-1] if s != 0 else ec1
+                static += [self.ts_static_curve(next_section,
+                                                arc_length=self.max_length)]
+            remainder = static_length % self.max_length
+            static += [self.ts_static_curve(static[-1], arc_length=remainder)]
+
+            ec2 = self.ts_easement_curve(static[-1], 0)
+            curve_data = [copy(s) for s in [self.start, ec1] + static + [ec2]]
 
         # Finds the required translation to align the curve with the 2 tracks
         # Should already be aligned with 1st
@@ -160,7 +184,6 @@ class TrackCurve(TrackSection):
         # Applies translation to each of the sections
         for ts in curve_data:
             ts.move(end_point[0] - ec2.pos_x, end_point[1] - ec2.pos_z)
-
         return curve_data
 
     def curve_fit_length(self, other, length, clockwise=None, places=4,
@@ -186,7 +209,8 @@ class TrackCurve(TrackSection):
                     raise
 
             else:
-                static_length = curve[2].org_length
+                static_length = sum(i.org_length for i in curve if
+                                    i.org_type == 'static')
                 if round(static_length - length, places) == 0:
                     # Accurate enough
                     return curve
@@ -287,15 +311,34 @@ class TrackCurve(TrackSection):
                 if self.start.curvature != curvature:
                     # Usual EC -> Static -> EC setup
                     ec1 = self.ts_easement_curve(self.start, curvature)
-                    static = self.ts_static_curve(ec1, static_curve_angle)
-                    ec2 = self.ts_easement_curve(static, 0)
-                    curve_data = [copy(s) for s in [self.start, ec1, static, ec2]]
-
+                    curve_data = [self.start, copy(ec1)]
                 else:
-                    # easement_length & pre_angle is cancelled out
-                    static = self.ts_static_curve(self.start, static_curve_angle)
+                    # Skip the first easement curve
+                    curve_data = [self.start]
+
+                static_length = abs(static_curve_angle / curvature)
+                # Checking if static curve is longer than 500
+                if not self.split_static or static_length <= self.max_length:
+                    # Single static section
+                    static = self.ts_static_curve(curve_data[-1],
+                                                  static_curve_angle)
                     ec2 = self.ts_easement_curve(static, 0)
-                    curve_data = [copy(s) for s in [self.start, static, ec2]]
+                    curve_data += [copy(s) for s in [static, ec2]]
+                # If split_static is True and longer than 500m, split
+                else:
+                    sections = math.floor(static_length / self.max_length)
+                    ls_static = []
+                    for s in range(sections):
+                        next_section = ls_static[s-1] if s != 0 else \
+                            curve_data[-1]
+                        ls_static += [self.ts_static_curve(
+                            next_section, arc_length=self.max_length)]
+                    # Adding the remainder section
+                    remainder = static_length % self.max_length
+                    ls_static += [self.ts_static_curve(ls_static[-1],
+                                                       arc_length=remainder)]
+                    ec2 = self.ts_easement_curve(ls_static[-1], 0)
+                    curve_data += [copy(s) for s in ls_static + [ec2]]
 
                 end_point = (curve_data[-1].pos_x, curve_data[-1].pos_z)
 
@@ -304,7 +347,8 @@ class TrackCurve(TrackSection):
                     return curve_data
 
                 elif line_other.same_side(start_point, end_point):
-                    # Same side, ie curve hasn't reached the other track - need larger RoC
+                    # Same side, ie curve hasn't reached the other track -
+                    # need larger RoC
                     n_floor = curvature
 
                 elif not line_other.same_side(start_point, end_point):

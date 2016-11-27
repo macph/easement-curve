@@ -191,7 +191,7 @@ class TrackSection(object):
                           org_curvature=self.start.curvature,
                           org_type='easement')
 
-    def static_curve(self, angle_diff):
+    def static_curve(self, angle_diff=None, arc_length=None):
         """ Creates a static (no change in curvature) track section based
             on the radius of curvature set with TrackCoord. Outputs
             another TrackCoord object. Length of the static curve depends
@@ -200,9 +200,16 @@ class TrackSection(object):
         if self.start.curvature == 0:
             raise TrackError('Angle cannot be specified if the track is '
                              'already straight.')
-        else:
+
+        if angle_diff is not None and arc_length is None:
             t = angle_diff
-            length = t / abs(self.start.curvature)
+            length = angle_diff / abs(self.start.curvature)
+        elif angle_diff is None and arc_length is not None:
+            length = arc_length
+            t = arc_length * abs(self.start.curvature)
+        else:
+            raise AttributeError('Cannot specify both curve length and angle'
+                                 'difference or neither of them.')
 
         self.clockwise = False if self.start.curvature > 0 else True
         radius = self.start.radius
