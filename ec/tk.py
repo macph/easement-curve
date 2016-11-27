@@ -60,7 +60,7 @@ class MainWindow(ttk.Frame):
         self.grid(row=0, column=0)
         self.parent = parent
 
-        self.settings, self.message = None, ''
+        self.settings, self.setdialog, self.message = None, None, ''
         self.load_settings('ec_settings.json', self.default_settings)
 
         self._kph = None
@@ -109,6 +109,9 @@ class MainWindow(ttk.Frame):
         ttk.Label(self, text='Select method ').grid(row=0, column=0)
         ttk.OptionMenu(self, self._method, options[0], *options,
                        command=self.refresh_method).grid(row=0, column=1)
+
+        ttk.Button(self, text='Settings', command=self.open_settings_dialog
+                   ).grid(row=0, column=4, sticky=(tk.N, tk.E))
 
         self.description = MethodDescription(self)
         self.description.grid(row=1, column=0, columnspan=5,
@@ -163,6 +166,15 @@ class MainWindow(ttk.Frame):
                             ' file. The default options have been selected.')
         else:
             self.settings = settings
+
+    def open_settings_dialog(self, event=None):
+        """ Opens the Settings dialog. If it has already been initialised the
+            dialog is deiconified.
+        """
+        try:
+            self.setdialog.show()
+        except AttributeError:
+            self.setdialog = SettingsDialog(self.parent)
 
     def refresh_method(self, event=None):
         """ Command to refresh method description and data entries depending
@@ -317,6 +329,56 @@ class MainWindow(ttk.Frame):
                          pos_x, pos_z, rotation, quad))
 
         return data
+
+
+class SettingsDialog(tk.Toplevel):
+    """ Extra dialog for showing About info. """
+
+    def __init__(self, parent):
+        super(SettingsDialog, self).__init__(parent)
+        self.parent = parent
+
+        # Setting up the window, should be transient (ie not full window)
+        self.title('Settings')
+        self.transient(parent)
+        self.resizable(False, False)
+        self.iconbitmap(resource_path('resources/logo.ico'))
+        self.move()    # Moving window relative to parent window
+        self.focus_set()    # Switching focus to this window
+
+        # The window body
+        self.container = ttk.Frame(self, padding="5 5 5 5")
+        self.container.grid(row=0, column=0)
+        self.body()
+
+        # What happens when you do something
+        self.protocol('WM_DELETE_WINDOW', self.hide)
+        self.bind('<Escape>', self.hide)
+        self.bind('<Return>', self.hide)
+
+    def body(self):
+        # Placeholder
+        ttk.Label(self.container, text='Hi there!'
+                  ).grid(row=0, column=0, columnspan=3, sticky=tk.W)
+
+        # Save button
+        ttk.Button(self.container, text='Save'
+                   ).grid(row=1, column=1, sticky=tk.E)
+        # Close button
+        ttk.Button(self.container, text='Close', command=self.hide
+                   ).grid(row=1, column=2, sticky=tk.E)
+
+    def move(self, offset=30):
+        """ Moves this window to position relative to parent window. """
+        x, y = self.parent.winfo_rootx(), self.parent.winfo_rooty()
+        self.geometry('+{x:d}+{y:d}'.format(x=x+offset, y=y+offset))
+
+    def hide(self, event=None):
+        self.withdraw()
+
+    def show(self, event=None):
+        self.move()
+        self.deiconify()
 
 
 class MethodDescription(ttk.LabelFrame):
