@@ -2,7 +2,8 @@
 # Tk graphical user interface for easement curve calculations
 
 from abc import ABCMeta, abstractmethod
-import os
+import json
+import os.path
 import sys
 
 import tkinter as tk
@@ -12,7 +13,7 @@ import tkinter.ttk as ttk
 from ec import base_path, coord, section, curve
 
 # TODO: Add gettext support. Next version
-# TODO: Consider adding speed tolerance profiles, and/or settings. Next version
+# TODO: Consider adding speed tolerance profiles. Next version
 
 
 def resource_path(relative_path):
@@ -45,12 +46,22 @@ class InterfaceException(Exception):
 
 class MainWindow(ttk.Frame):
     """ Main application window. """
+    default_settings = {
+        'language': 'en',
+        'speed units': 'mph',
+        'two decimal places': False,
+        'split static curve': False,
+        'results rows': 5
+    }
 
     def __init__(self, parent, **kwargs):
         super(MainWindow, self).__init__(parent, **kwargs)
         self.config(padding='{t} {t} {t} {t}'.format(t=text_length(1)))
         self.grid(row=0, column=0)
         self.parent = parent
+
+        self.settings, self.message = None, ''
+        self.load_settings('ec_settings.json', self.default_settings)
 
         self._kph = None
         self._method = tk.StringVar()
@@ -115,7 +126,10 @@ class MainWindow(ttk.Frame):
             self.entries[k].grid_remove()
 
         ttk.Style().configure('Red.TLabel', foreground="red")
-        self.msg = ttk.Label(self, text='')
+        if self.message == '':
+            self.msg = ttk.Label(self, text='')
+        else:
+            self.msg = ttk.Label(self, text=self.message, style='Red.TLabel')
         self.msg.config(width=56, wraplength=text_length(56))
         self.msg.grid(row=4, column=0, columnspan=3, sticky=tk.W)
 
@@ -126,6 +140,29 @@ class MainWindow(ttk.Frame):
 
         self.result = Result(self)
         self.result.grid(row=5, column=0, columnspan=5)
+
+    def load_settings(self, filename, defaults):
+        """ Loads settings from a JSON file. If no setttings are found, will
+            use predefined settings instead.
+        """
+        try:
+            with open(filename, 'r') as jf:
+                settings = json.load(jf)
+        except FileNotFoundError:
+            settings = defaults
+            self.message = ('Settings file not found. The default options '
+                            'have been selected.')
+        except json.JSONDecodeError:
+            settings = defaults
+            self.message = ('The settings file cannot be loaded. The default '
+                            'options have been selected.')
+
+        if settings.keys() != self.default_settings.keys():
+            self.settings = defaults
+            self.message = ('The settings has the wrong keys. Try resaving the'
+                            ' file. The default options have been selected.')
+        else:
+            self.settings = settings
 
     def refresh_method(self, event=None):
         """ Command to refresh method description and data entries depending
@@ -194,8 +231,7 @@ class MainWindow(ttk.Frame):
 
         self.result.load_table(self.display_data(result))
 
-    @staticmethod
-    def display_data(result):
+    def display_data(self, result):
         """ Formats the results data to make them readable and gives correct
             decimal places.
         """
@@ -206,30 +242,37 @@ class MainWindow(ttk.Frame):
         count_ease = sum(1 for ts in result if ts.org_type == 'easement')
         s, e = 0, 0
 
-        for i, ts in enumerate(result):
-            if ts is None:
-                continue
+        decimal_places = 2 if \
+            self.settings.get('two decimal places', False) else 1
 
+        for i, ts in enumerate(result):
             # Creating the radius of curvature text
             if ts.org_curvature == ts.curvature or ts.org_curvature is None:
                 # Only one value needed.
                 if ts.curvature == 0:
                     roc_text = ts.clockwise.capitalize()
                 else:
-                    roc_text = '{0:.1f} {1}'.format(ts.radius, ts.clockwise)
+                    roc_text = '{roc:.{dp}f} {cw}' \
+                               ''.format(roc=ts.radius, cw=ts.clockwise,
+                                         dp=decimal_places)
             else:
                 # Both values needed.
                 if ts.org_curvature != 0 and ts.curvature != 0:
-                    roc_text = '{0:.1f} to {1:.1f} {2}'.format(
-                        ts.org_radius, ts.radius, ts.clockwise)
+                    roc_text = '{st:.{dp}f} to {end:.{dp}f} {cw}' \
+                               ''.format(st=ts.org_radius, end=ts.radius,
+                                         cw=ts.clockwise, dp=decimal_places)
                 elif ts.org_curvature == 0 and ts.curvature != 0:
-                    roc_text = '{0} to {1:.1f} {2}'.format(
-                        ts.org_clockwise.capitalize(), ts.radius, ts.clockwise)
+                    roc_text = '{st} to {end:.{dp}f} {cw}' \
+                               ''.format(st=ts.org_clockwise.capitalize(),
+                                         end=ts.radius, cw=ts.clockwise,
+                                         dp=decimal_places)
                 elif ts.org_curvature != 0 and ts.curvature == 0:
-                    roc_text = '{0:.1f} {1} to {2}'.format(
-                        ts.org_radius, ts.org_clockwise, ts.clockwise.lower())
+                    roc_text = '{st:.{dp}f} {cw} to {end}' \
+                               ''.format(st=ts.org_radius, cw=ts.org_clockwise,
+                                         end=ts.clockwise.lower(),
+                                         dp=decimal_places)
                 else:
-                    raise Exception(
+                    raise ValueError(
                         'Something went wrong here - org curvature {0} and '
                         'curvature {1}'.format(ts.org_curvature, ts.curvature))
 
@@ -253,8 +296,10 @@ class MainWindow(ttk.Frame):
                                      'object {!r}.'.format(ts.org_type, ts))
 
             # Setting length value to 1 decimal place
-            length = '{:.1f}'.format(ts.org_length) if \
-                ts.org_length is not None else ''
+            if ts.org_length is not None:
+                length = '{:.{dp}f}'.format(ts.org_length, dp=decimal_places)
+            else:
+                length = ''
 
             # Setting position values to 3 decimal places
             pos_x, pos_z = '{:.3f}'.format(ts.pos_x), \
@@ -319,6 +364,7 @@ class SpeedRadius(ttk.LabelFrame):
         self.config(padding="4 0 0 8", text='Curve setup')
         self.grid(sticky=(tk.W, tk.E))
         self.columnconfigure(1, pad=4)
+        self.parent = parent
 
         self.speed = tk.StringVar()
         self.dim = tk.StringVar()
@@ -326,15 +372,15 @@ class SpeedRadius(ttk.LabelFrame):
         self.body()
 
     def body(self):
-        options = ['mph', 'km/h']
         ttk.Label(self, text='Speed tolerance ', width=16
                   ).grid(row=0, column=0, sticky=tk.W)
         ttk.Entry(self, textvariable=self.speed, width=8
                   ).grid(row=0, column=1, sticky=tk.W)
 
+        options = ['mph', 'km/h']
         dimensions = ttk.Combobox(self, textvariable=self.dim)
         dimensions.config(width=6, values=options, state='readonly')
-        dimensions.current(0)
+        dimensions.set(self.parent.settings.get('speed units', 'mph'))
         dimensions.grid(row=0, column=2, sticky=tk.W)
 
         ttk.Label(self, text='Minimum radius of curvature ', padding="8 0 0 0"
@@ -379,7 +425,8 @@ class BaseEntryM(ttk.LabelFrame, metaclass=ABCMeta):
     def args(self):
         """ Dict to be used as arguement for the TrackCurve instances. """
         return {'speed': self.parent.kph,
-                'minimum': self.parent.minimum_radius}
+                'minimum': self.parent.minimum_radius,
+                'split': self.parent.settings.get('split static curve', False)}
 
     def reset_values(self):
         """ Resets all entries to their original configuration. """
@@ -550,11 +597,14 @@ class Result(ttk.Frame):
         super(Result, self).__init__(parent)
         self.grid(sticky=(tk.W, tk.E))
         self.treeview = None
+        self.parent = parent
+
         self.create_table()
 
     def create_table(self):
         """ Initalises table. """
-        tv = ttk.Treeview(self, height=5)
+        rows = self.parent.settings.get('results rows', 5)
+        tv = ttk.Treeview(self, height=rows)
         ttk.Style().configure('Treeview', rowheight=text_length(3.5))
 
         columns = ('section', 'length', 'roc', 'pos_x',

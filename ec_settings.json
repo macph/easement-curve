@@ -1,0 +1,7 @@
+{
+    "speed units": "mph",
+    "split static curve": true,
+    "language": "en",
+    "two decimal places": true,
+    "results rows": 10
+}
