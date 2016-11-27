@@ -325,11 +325,15 @@ class MethodDescription(ttk.LabelFrame):
     description = {
         '1': ("Takes two straight tracks at different angles, and creates an "
               "easement curve with set radius of curvature connecting the two "
-              "tracks."),
+              "tracks.\n\n"
+              "Direction (optional) - Forces curve to be aligned in that "
+              "direction."),
         '2': ("Extends an easement curve onwards from a track to join with "
-              "another straight track. The optional pair of coordinates on "
-              "the first track is used to define radius of curvature - if "
-              "it is left empty the first track is assumed to be straight.")
+              "another straight track.\n\n"
+              "Additional coordinates (optional) - Defines radius of "
+              "curvature at start of track.\n"
+              "Second speed tolerance (optional) - Sets a specific speed "
+              "tolerance for the second easement curve.")
     }
 
     def __init__(self, parent):
@@ -407,11 +411,12 @@ class BaseEntryM(ttk.LabelFrame, metaclass=ABCMeta):
         self.line1 = self.coord_stringvar()
         self.line2 = self.coord_stringvar()
         self.radius, self.direction = tk.StringVar(), tk.StringVar()
+        self.second_speed_tolerance = tk.StringVar()
         
         # All rows and columns in grid
         for i in range(5):
             self.grid_columnconfigure(i, pad=4)
-        for j in range(4):
+        for j in range(5):
             self.grid_rowconfigure(j, pad=4)
 
         self.parent = parent
@@ -576,6 +581,11 @@ class EntryMethod2(BaseEntryM):
         self.coord_entry(self.line2['r'], 3, 3)
         self.coord_menu(self.line2['q'], self.quads, 3, 4)
 
+        self.start_label('Second speed tolerance', 4)
+        self.coord_entry(self.second_speed_tolerance, 4, 1)
+        ttk.Label(self, textvariable=self.parent.sr.dim, width=6
+                  ).grid(row=4, column=2, sticky=tk.W)
+
     def get_result(self):
         start_track = self.get_coord(self.line1)
         end_track = self.get_coord(self.line2)
@@ -583,10 +593,21 @@ class EntryMethod2(BaseEntryM):
 
         # Check if first two fields are empty - if so, track is straight
         if all(self.line0[k].get() == '' for k in 'xz'):
-            return track.curve_fit_point(other=end_track)
+            pre_track = None
         else:
             pre_track = self.get_coord(self.line0)
-            return track.curve_fit_point(other=end_track, add_point=pre_track)
+        # Check if speed tolerance is empty - if not, find units and apply
+        if self.second_speed_tolerance.get() == '':
+            second_sp = None
+        else:
+            try:
+                second_sp = float(self.second_speed_tolerance.get())
+            except ValueError:
+                raise InterfaceException('Speed tolerance must be a number.')
+            second_sp *= 1.609344 if self.parent.sr.dim.get() == 'mph' else 1
+
+        return track.curve_fit_point(other=end_track, add_point=pre_track,
+                                     end_speed_tolerance=second_sp)
 
 
 class Result(ttk.Frame):
@@ -610,9 +631,9 @@ class Result(ttk.Frame):
         columns = ('section', 'length', 'roc', 'pos_x',
                    'pos_z', 'rotation', 'quad')
         columns_d = {
-            'section': ('Curve section', 'w', 14),
-            'length': ('Length', 'e', 9),
-            'roc': ('Radius of curvature', 'w', 22),
+            'section': ('Curve section', 'w', 15),
+            'length': ('Length', 'e', 10),
+            'roc': ('Radius of curvature', 'w', 24),
             'pos_x': ('Position X', 'e', 11),
             'pos_z': ('Position Z', 'e', 11),
             'rotation': ('Rotation', 'e', 10),

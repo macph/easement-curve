@@ -66,7 +66,7 @@ class CustomAssertions(object):
 
         ls_msg = []
         if not other_coord.bearing.nearly_equal(end_coord.bearing):
-            ls_msg.append('{f:.3f} != {s:.3f}'.format(
+            ls_msg.append('Bearing {f:.3f} != {s:.3f}'.format(
                 f=end_coord.bearing.deg, s=other_coord.bearing.deg))
         if round(line.dist(end, absolute=True), places) != 0:
             ls_msg.append('Distance from other track = {d:.3f}'.format(

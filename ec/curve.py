@@ -25,11 +25,14 @@ class TrackCurve(TrackSection):
         super(TrackCurve, self).__init__(curve, minimum, speed)
         self.split_static = split
 
-    def ts_easement_curve(self, curve, end_curv):
+    def ts_easement_curve(self, curve, end_curv, speed=None):
         """ Creates a TrackSection instance and returns its easement_curve
             method, for operational and reading ease.
+            Can define a specific speed tolerance value instead of using
+            the one used by TrackCurve instance.
         """
-        ts = TrackSection(curve, self.minimum_radius, self.speed_tolerance)
+        speed = self.speed_tolerance if speed is None else speed
+        ts = TrackSection(curve, self.minimum_radius, speed)
         return ts.easement_curve(end_curv)
 
     def ts_static_curve(self, curve, angle_diff=None, arc_length=None):
@@ -239,7 +242,8 @@ class TrackCurve(TrackSection):
                 'A suitable alignment was not found after {0} iterations. '
                 ''.format(iterations))
 
-    def curve_fit_point(self, other, add_point=None, places=4, iterations=100):
+    def curve_fit_point(self, other, add_point=None, end_speed_tolerance=None,
+                        places=4, iterations=100):
         """ Extends a curve with easement sections from a point on a track,
             which can be curved, to join with a straight track. Uses the
             bisection method to find the correct radius of curvature by
@@ -247,6 +251,8 @@ class TrackCurve(TrackSection):
             overshot.
             places: minimum distance between easement curve and 2nd track
             iterations: maximum number of iterations before giving up
+            end_speed_tolerance: 2nd easement curve is created with specific
+            speed tolerance instead of using instance's SP.
         """
         try:
             if other.curvature != 0:
@@ -300,13 +306,23 @@ class TrackCurve(TrackSection):
         # Ensuring it runs in a loop with a limited number of iterations
         for j in range(iterations):
             easement_length = self.easement_length(curvature)
-            static_curve_angle = diff_angle.rad - self.easement_angle(easement_length) \
-                - abs(self.easement_angle(easement_length) - pre_angle)
+            if end_speed_tolerance is None:
+                static_curve_angle = diff_angle.rad \
+                    - self.easement_angle(easement_length) \
+                    - abs(self.easement_angle(easement_length) - pre_angle)
+            else:
+                # Calculating angle of second easement if a different speed
+                # tolerance is specified
+                second_ts = TrackSection(self.start, self.minimum_radius,
+                                         end_speed_tolerance)
+                second_easement_length = second_ts.easement_length(curvature)
+                static_curve_angle = diff_angle.rad \
+                    - second_ts.easement_angle(second_easement_length) \
+                    - abs(self.easement_angle(easement_length) - pre_angle)
 
             if static_curve_angle < 0:
                 # RoC too small; set a floor and repeat loop
                 n_floor = curvature
-
             else:
                 if self.start.curvature != curvature:
                     # Usual EC -> Static -> EC setup
@@ -322,8 +338,7 @@ class TrackCurve(TrackSection):
                     # Single static section
                     static = self.ts_static_curve(curve_data[-1],
                                                   static_curve_angle)
-                    ec2 = self.ts_easement_curve(static, 0)
-                    curve_data += [copy(s) for s in [static, ec2]]
+                    curve_data.append(copy(static))
                 # If split_static is True and longer than 500m, split
                 else:
                     sections = math.floor(static_length / self.max_length)
@@ -337,8 +352,12 @@ class TrackCurve(TrackSection):
                     remainder = static_length % self.max_length
                     ls_static += [self.ts_static_curve(ls_static[-1],
                                                        arc_length=remainder)]
-                    ec2 = self.ts_easement_curve(ls_static[-1], 0)
-                    curve_data += [copy(s) for s in ls_static + [ec2]]
+                    curve_data += [copy(s) for s in ls_static]
+
+                # Last section
+                ec2 = self.ts_easement_curve(curve_data[-1], 0,
+                                             speed=end_speed_tolerance)
+                curve_data.append(copy(ec2))
 
                 end_point = (curve_data[-1].pos_x, curve_data[-1].pos_z)
 

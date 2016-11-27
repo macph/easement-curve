@@ -277,3 +277,15 @@ class CurveFitPointTests(BaseTCTests):
     def test_curve_point_curved_right(self):
         curve = self.right.curve_fit_point(self.end_right, self.start_curved_add)
         self.assertTrackAlign(curve[-1], self.end_right)
+
+    def test_curve_point_left_diff_sp(self):
+        curve = self.straight_high.curve_fit_point(self.end_left, end_speed_tolerance=80)
+        self.assertTrackAlign(curve[-1], self.end_left)
+
+    def test_curve_point_right_diff_sp(self):
+        curve = self.straight_high.curve_fit_point(self.end_right, end_speed_tolerance=80)
+        self.assertTrackAlign(curve[-1], self.end_right)
+
+    def test_curve_point_curved_right_diff_sp(self):
+        curve = self.right.curve_fit_point(self.end_right, self.start_curved_add, end_speed_tolerance=80)
+        self.assertTrackAlign(curve[-1], self.end_right)
