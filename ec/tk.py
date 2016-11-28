@@ -62,7 +62,7 @@ class MainWindow(ttk.Frame):
 
         self.settings, self.setdialog, self.message = (None,) * 3
         self.exists = True
-        self.load_settings(self.file, self.default_settings)
+        self.load_settings()
 
         self._kph = None
         self._method = tk.StringVar()
@@ -144,25 +144,25 @@ class MainWindow(ttk.Frame):
         self.result = Result(self)
         self.result.grid(row=5, column=0, columnspan=5)
 
-    def load_settings(self, filename, defaults):
+    def load_settings(self):
         """ Loads settings from a JSON file. If no setttings are found, will
             use predefined settings instead.
         """
         try:
-            with open(filename, 'r') as jf:
+            with open(self.file, 'r') as jf:
                 settings = json.load(jf)
         except FileNotFoundError:
-            settings = defaults
+            settings = self.default_settings
             self.exists = False
             self.message = ('Settings file not found. The default options '
                             'have been selected.')
         except json.JSONDecodeError:
-            settings = defaults
+            settings = self.default_settings
             self.message = ('The settings file cannot be loaded. The default '
                             'options have been selected.')
 
         if settings.keys() != self.default_settings.keys():
-            self.settings = defaults
+            self.settings = self.default_settings
             self.message = ('The settings has the wrong keys. Try resaving the'
                             ' file. The default options have been selected.')
         else:
@@ -176,6 +176,19 @@ class MainWindow(ttk.Frame):
             self.setdialog.show()
         except AttributeError:
             self.setdialog = SettingsDialog(self, self.parent)
+
+    def save_settings(self):
+        """ Saves settings to a JSON file. If the settings are the same no
+            action is taken.
+        """
+        with open(self.file, 'r') as jf:
+            old_settings = json.load(jf)
+            if old_settings == self.settings:
+                # Settings same; no need to save
+                return
+        # Else:
+        with open(self.file, 'w') as jf:
+            json.dump(self.settings, jf, indent=4, sort_keys=True)
 
     def refresh_method(self, event=None):
         """ Command to refresh method description and data entries depending
@@ -369,10 +382,6 @@ class SettingsDialog(tk.Toplevel):
         for k, v in self.temp_settings.items():
             v.set(self.parent.settings.get(k, self.parent.default_settings[k]))
 
-    def save_settings(self):
-        for k, v in self.temp_settings.items():
-            self.parent.settings[k] = v.get()
-
     def body(self):
         self.container.columnconfigure(2, pad=text_length(1))
         for i in range(6):
@@ -419,9 +428,12 @@ class SettingsDialog(tk.Toplevel):
                    ).grid(row=5, column=2, sticky=tk.E)
 
     def save(self, event=None):
-        self.save_settings()
-        with open(self.parent.file, 'w') as jf:
-            json.dump(self.parent.settings, jf, indent=4)
+        for k, v in self.temp_settings.items():
+            self.parent.settings[k] = v.get()
+        # Sets results table to new value of rows.
+        self.parent.result.refresh_rows(
+            self.parent.settings.get('results rows', 5))
+        self.parent.save_settings()
         self.withdraw()
 
     def move(self, offset=30):
@@ -752,6 +764,10 @@ class Result(ttk.Frame):
 
         tv.grid(sticky=(tk.N, tk.S, tk.W, tk.E))
         self.treeview = tv
+
+    def refresh_rows(self, rows, event=None):
+        if self.treeview.cget('height') != rows:
+            self.treeview.config(height=rows)
 
     def load_table(self, data):
         """ Loads table using data (list of tuples). """

@@ -1,6 +1,6 @@
 {
-    "speed units": "mph",
-    "split static curve": true,
+    "decimal places": 2,
     "results rows": 6,
-    "decimal places": 2
+    "speed units": "mph",
+    "split static curve": true
 }
