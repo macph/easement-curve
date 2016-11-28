@@ -47,12 +47,12 @@ class InterfaceException(Exception):
 class MainWindow(ttk.Frame):
     """ Main application window. """
     default_settings = {
-        'language': 'en',
         'speed units': 'mph',
-        'two decimal places': False,
+        'decimal places': 1,
         'split static curve': False,
         'results rows': 5
     }
+    file = 'ec_settings.json'
 
     def __init__(self, parent, **kwargs):
         super(MainWindow, self).__init__(parent, **kwargs)
@@ -60,8 +60,9 @@ class MainWindow(ttk.Frame):
         self.grid(row=0, column=0)
         self.parent = parent
 
-        self.settings, self.setdialog, self.message = None, None, ''
-        self.load_settings('ec_settings.json', self.default_settings)
+        self.settings, self.setdialog, self.message = (None,) * 3
+        self.exists = True
+        self.load_settings(self.file, self.default_settings)
 
         self._kph = None
         self._method = tk.StringVar()
@@ -101,9 +102,9 @@ class MainWindow(ttk.Frame):
 
     def body(self):
         self.columnconfigure(2, weight=1)
-        self.columnconfigure(4, pad=4)
-        self.rowconfigure(3, pad=4)
-        self.rowconfigure(4, pad=4)
+        self.columnconfigure(4, pad=text_length(1))
+        self.rowconfigure(3, pad=text_length(1))
+        self.rowconfigure(4, pad=text_length(1))
 
         options = ['1', '2']
         ttk.Label(self, text='Select method ').grid(row=0, column=0)
@@ -129,10 +130,9 @@ class MainWindow(ttk.Frame):
             self.entries[k].grid_remove()
 
         ttk.Style().configure('Red.TLabel', foreground="red")
-        if self.message == '':
-            self.msg = ttk.Label(self, text='')
-        else:
-            self.msg = ttk.Label(self, text=self.message, style='Red.TLabel')
+        if self.message is None:
+            self.message = 'All OK.'
+        self.msg = ttk.Label(self, text=self.message)
         self.msg.config(width=56, wraplength=text_length(56))
         self.msg.grid(row=4, column=0, columnspan=3, sticky=tk.W)
 
@@ -153,6 +153,7 @@ class MainWindow(ttk.Frame):
                 settings = json.load(jf)
         except FileNotFoundError:
             settings = defaults
+            self.exists = False
             self.message = ('Settings file not found. The default options '
                             'have been selected.')
         except json.JSONDecodeError:
@@ -174,7 +175,7 @@ class MainWindow(ttk.Frame):
         try:
             self.setdialog.show()
         except AttributeError:
-            self.setdialog = SettingsDialog(self.parent)
+            self.setdialog = SettingsDialog(self, self.parent)
 
     def refresh_method(self, event=None):
         """ Command to refresh method description and data entries depending
@@ -254,8 +255,7 @@ class MainWindow(ttk.Frame):
         count_ease = sum(1 for ts in result if ts.org_type == 'easement')
         s, e = 0, 0
 
-        decimal_places = 2 if \
-            self.settings.get('two decimal places', False) else 1
+        decimal_places = self.settings.get('decimal places', 1)
 
         for i, ts in enumerate(result):
             # Creating the radius of curvature text
@@ -334,9 +334,9 @@ class MainWindow(ttk.Frame):
 class SettingsDialog(tk.Toplevel):
     """ Extra dialog for showing About info. """
 
-    def __init__(self, parent):
-        super(SettingsDialog, self).__init__(parent)
-        self.parent = parent
+    def __init__(self, parent, root):
+        super(SettingsDialog, self).__init__(root)
+        self.root, self.parent = root, parent
 
         # Setting up the window, should be transient (ie not full window)
         self.title('Settings')
@@ -346,34 +346,92 @@ class SettingsDialog(tk.Toplevel):
         self.move()    # Moving window relative to parent window
         self.focus_set()    # Switching focus to this window
 
+        self.temp_settings = {
+            'speed units': tk.StringVar(),
+            'results rows': tk.IntVar(),
+            'decimal places': tk.IntVar(),
+            'split static curve': tk.BooleanVar()
+        }
+
         # The window body
-        self.container = ttk.Frame(self, padding="5 5 5 5")
+        self.container = ttk.Frame(
+            self, padding='{t} {t} {t} {t}'.format(t=text_length(1)))
         self.container.grid(row=0, column=0)
+        self.load_settings()
         self.body()
 
         # What happens when you do something
-        self.protocol('WM_DELETE_WINDOW', self.hide)
-        self.bind('<Escape>', self.hide)
-        self.bind('<Return>', self.hide)
+        self.protocol('WM_DELETE_WINDOW', self.cancel)
+        self.bind('<Escape>', self.cancel)
+        self.bind('<Return>', self.cancel)
+
+    def load_settings(self):
+        for k, v in self.temp_settings.items():
+            v.set(self.parent.settings.get(k, self.parent.default_settings[k]))
+
+    def save_settings(self):
+        for k, v in self.temp_settings.items():
+            self.parent.settings[k] = v.get()
 
     def body(self):
-        # Placeholder
-        ttk.Label(self.container, text='Hi there!'
-                  ).grid(row=0, column=0, columnspan=3, sticky=tk.W)
+        self.container.columnconfigure(2, pad=text_length(1))
+        for i in range(6):
+            self.container.rowconfigure(i, pad=text_length(1))
+
+        # Speed units
+        ttk.Label(self.container, text='Speed tolerance units at startup'
+                  ).grid(row=0, column=0, columnspan=2, sticky=tk.W)
+        speed_options = ['mph', 'km/h']
+        units = ttk.Combobox(self.container, width=6,
+                             textvariable=self.temp_settings['speed units'])
+        units.config(values=speed_options, state='readonly')
+        units.grid(row=0, column=2)
+
+        # Results rows
+        ttk.Label(self.container, text='Number of rows in results table'
+                  ).grid(row=1, column=0, columnspan=2, sticky=tk.W)
+        results_options = list(range(5, 16))
+        rows = ttk.Combobox(self.container, width=6,
+                            textvariable=self.temp_settings['results rows'])
+        rows.config(values=results_options, state='readonly')
+        rows.grid(row=1, column=2)
+
+        # Decimal places
+        ttk.Label(self.container, text='Decimal places for length and RoC'
+                  ).grid(row=2, column=0, columnspan=2, sticky=tk.W)
+        decimal_options = list(range(1, 4))
+        rows = ttk.Combobox(self.container, width=6,
+                            textvariable=self.temp_settings['decimal places'])
+        rows.config(values=decimal_options, state='readonly')
+        rows.grid(row=2, column=2)
+
+        # Split up static curves
+        split = ttk.Checkbutton(self.container,
+                                text='Split static curves into 500 m sections')
+        split.config(variable=self.temp_settings['split static curve'])
+        split.grid(row=3, column=0, columnspan=3, sticky=tk.W)
 
         # Save button
-        ttk.Button(self.container, text='Save'
-                   ).grid(row=1, column=1, sticky=tk.E)
+        ttk.Button(self.container, text='Save', command=self.save
+                   ).grid(row=5, column=1, sticky=tk.E)
         # Close button
-        ttk.Button(self.container, text='Close', command=self.hide
-                   ).grid(row=1, column=2, sticky=tk.E)
+        ttk.Button(self.container, text='Cancel', command=self.cancel
+                   ).grid(row=5, column=2, sticky=tk.E)
+
+    def save(self, event=None):
+        self.save_settings()
+        with open(self.parent.file, 'w') as jf:
+            json.dump(self.parent.settings, jf, indent=4)
+        self.withdraw()
 
     def move(self, offset=30):
         """ Moves this window to position relative to parent window. """
-        x, y = self.parent.winfo_rootx(), self.parent.winfo_rooty()
+        x, y = self.root.winfo_rootx(), self.root.winfo_rooty()
         self.geometry('+{x:d}+{y:d}'.format(x=x+offset, y=y+offset))
 
-    def hide(self, event=None):
+    def cancel(self, event=None):
+        # Restores original settings
+        self.load_settings()
         self.withdraw()
 
     def show(self, event=None):
@@ -387,11 +445,13 @@ class MethodDescription(ttk.LabelFrame):
     description = {
         '1': ("Takes two straight tracks at different angles, and creates an "
               "easement curve with set radius of curvature connecting the two "
-              "tracks."),
+              "tracks.\n"
+              "Direction (optional) - forces curve to be aligned in that "
+              "direction even if it is longer."),
         '2': ("Extends an easement curve onwards from a track to join with "
-              "another straight track. The optional pair of coordinates on "
-              "the first track is used to define radius of curvature - if "
-              "it is left empty the first track is assumed to be straight.")
+              "another straight track.\n"
+              "Additional coordinates (optional) - used to define radius of "
+              "curvature at the start of curve.")
     }
 
     def __init__(self, parent):
@@ -674,7 +734,7 @@ class Result(ttk.Frame):
         columns_d = {
             'section': ('Curve section', 'w', 14),
             'length': ('Length', 'e', 9),
-            'roc': ('Radius of curvature', 'w', 22),
+            'roc': ('Radius of curvature', 'w', 24),
             'pos_x': ('Position X', 'e', 11),
             'pos_z': ('Position Z', 'e', 11),
             'rotation': ('Rotation', 'e', 10),
