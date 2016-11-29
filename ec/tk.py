@@ -52,6 +52,12 @@ class MainWindow(ttk.Frame):
         'split static curve': False,
         'results rows': 5
     }
+    validate_settings = {
+        'speed units': {'mph', 'km/h'},
+        'decimal places': {1, 2, 3},
+        'split static curve': {True, False},
+        'results rows': set(range(1, 25))
+    }
     file = 'ec_settings.json'
 
     def __init__(self, parent, **kwargs):
@@ -154,19 +160,51 @@ class MainWindow(ttk.Frame):
         except FileNotFoundError:
             settings = self.default_settings
             self.exists = False
-            self.message = ('Settings file not found. The default options '
-                            'have been selected.')
+            self.message = ("Settings file not found. The default options "
+                            "have been selected.")
+        except (FileExistsError, PermissionError):
+            settings = self.default_settings
+            self.exists = False
+            self.message = ("Another file or directory has the name '{}'. The "
+                            "default options have been selected."
+                            "".format(self.file))
         except json.JSONDecodeError:
             settings = self.default_settings
-            self.message = ('The settings file cannot be loaded. The default '
-                            'options have been selected.')
+            self.message = ("The settings file cannot be loaded. The default "
+                            "options have been selected.")
 
         if settings.keys() != self.default_settings.keys():
             self.settings = self.default_settings
-            self.message = ('The settings has the wrong keys. Try resaving the'
-                            ' file. The default options have been selected.')
+            self.message = ("The settings file has the wrong keys. Try "
+                            "resaving the file. The default options have been "
+                            "selected.")
         else:
-            self.settings = settings
+            if all(settings[i] in self.validate_settings[i] for i in
+                   settings.keys()):
+                # Can import settings
+                self.settings = settings
+            else:
+                self.settings = self.default_settings
+                self.message = ("The settings file has the wrong values. Try "
+                                "resaving the file. The default options have "
+                                "been selected.")
+
+    def save_settings(self):
+        """ Saves settings to a JSON file. If the settings are the same no
+            action is taken. If there are problems errors will be raised.
+        """
+        try:
+            with open(self.file, 'r') as jf:
+                old_settings = json.load(jf)
+                if old_settings == self.settings:
+                    # Settings same; no need to save
+                    return
+        except FileNotFoundError:
+            # We still want to save it anyway
+            pass
+        # Else:
+        with open(self.file, 'w') as jf:
+            json.dump(self.settings, jf, indent=2, sort_keys=True)
 
     def open_settings_dialog(self, event=None):
         """ Opens the Settings dialog. If it has already been initialised the
@@ -176,19 +214,6 @@ class MainWindow(ttk.Frame):
             self.setdialog.show()
         except AttributeError:
             self.setdialog = SettingsDialog(self, self.parent)
-
-    def save_settings(self):
-        """ Saves settings to a JSON file. If the settings are the same no
-            action is taken.
-        """
-        with open(self.file, 'r') as jf:
-            old_settings = json.load(jf)
-            if old_settings == self.settings:
-                # Settings same; no need to save
-                return
-        # Else:
-        with open(self.file, 'w') as jf:
-            json.dump(self.settings, jf, indent=4, sort_keys=True)
 
     def refresh_method(self, event=None):
         """ Command to refresh method description and data entries depending
@@ -345,7 +370,7 @@ class MainWindow(ttk.Frame):
 
 
 class SettingsDialog(tk.Toplevel):
-    """ Extra dialog for showing About info. """
+    """ Extra dialog for editing settings. """
 
     def __init__(self, parent, root):
         super(SettingsDialog, self).__init__(root)
@@ -365,6 +390,7 @@ class SettingsDialog(tk.Toplevel):
             'decimal places': tk.IntVar(),
             'split static curve': tk.BooleanVar()
         }
+        self.message, self.msg = None, None
 
         # The window body
         self.container = ttk.Frame(
@@ -379,10 +405,12 @@ class SettingsDialog(tk.Toplevel):
         self.bind('<Return>', self.cancel)
 
     def load_settings(self):
+        """ Loads settings from parent window. """
         for k, v in self.temp_settings.items():
             v.set(self.parent.settings.get(k, self.parent.default_settings[k]))
 
     def body(self):
+        """ Main body. """
         self.container.columnconfigure(2, pad=text_length(1))
         for i in range(6):
             self.container.rowconfigure(i, pad=text_length(1))
@@ -420,6 +448,14 @@ class SettingsDialog(tk.Toplevel):
         split.config(variable=self.temp_settings['split static curve'])
         split.grid(row=3, column=0, columnspan=3, sticky=tk.W)
 
+        # Message section
+        ttk.Style().configure('Red.TLabel', foreground='red')
+        self.message = ttk.Label(self.container, text='')
+        self.message.grid(row=4, column=0, columnspan=3, sticky=tk.W)
+        if not self.parent.exists:
+            self.refresh_message('New file {} will be created'
+                                 ''.format(self.parent.file))
+
         # Save button
         ttk.Button(self.container, text='Save', command=self.save
                    ).grid(row=5, column=1, sticky=tk.E)
@@ -427,13 +463,34 @@ class SettingsDialog(tk.Toplevel):
         ttk.Button(self.container, text='Cancel', command=self.cancel
                    ).grid(row=5, column=2, sticky=tk.E)
 
+    def refresh_message(self, message, colour='black'):
+        """ Changes text at bottom to new message - if 'colour' is 'red' the
+            it will also change colour.
+        """
+        try:
+            if colour == 'red':
+                self.message.config(text=message, style='Red.TLabel')
+            else:
+                self.message.config(text=message, style='TLabel')
+        except AttributeError as err:
+            raise AttributeError('function refresh_message raised before '
+                                 'message widget was created') from err
+
     def save(self, event=None):
+        """ Save command: rewrites settings and save to JSON file. """
+        # Saves new values to parent's setting attribute
         for k, v in self.temp_settings.items():
             self.parent.settings[k] = v.get()
         # Sets results table to new value of rows.
         self.parent.result.refresh_rows(
             self.parent.settings.get('results rows', 5))
-        self.parent.save_settings()
+        try:
+            self.parent.save_settings()
+        except PermissionError:
+            message = 'Error: cannot save file {}'.format(self.parent.file)
+            self.refresh_message(message, 'red')
+            return
+        # Closes window
         self.withdraw()
 
     def move(self, offset=30):
@@ -442,11 +499,13 @@ class SettingsDialog(tk.Toplevel):
         self.geometry('+{x:d}+{y:d}'.format(x=x+offset, y=y+offset))
 
     def cancel(self, event=None):
+        """ Restores settings to original and closes window. """
         # Restores original settings
         self.load_settings()
         self.withdraw()
 
     def show(self, event=None):
+        """ Used by parent window to reopen the dialog. """
         self.move()
         self.deiconify()
 
